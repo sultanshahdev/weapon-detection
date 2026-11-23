@@ -1,0 +1,66 @@
+[
+  {
+    "name": "Dangerous Items Dataset v2",
+    "url": "https://zenodo.org/records/13786228",
+    "version": "v2, record 13786228",
+    "license": null,
+    "download_date": null,
+    "annotation_format": "Pascal VOC XML (publisher description)",
+    "original_class_names": [
+      "baseball bat",
+      "gun",
+      "knife",
+      "machete",
+      "rifle"
+    ],
+    "normalized_mapping": null,
+    "verified_image_count": null,
+    "verified_annotation_count": null,
+    "notes": "Publisher lists a 357.8 MB archive and a 75/25 train/test split. Zenodo record API exposes open access but no license field was verified. Class names are publisher-described. Medium and original image provenance require review."
+  },
+  {
+    "name": "Roboflow Universe Pistols",
+    "url": "https://universe.roboflow.com/joseph-nelson/pistols",
+    "version": "1 (export page reviewed)",
+    "license": null,
+    "download_date": null,
+    "annotation_format": "YOLO export candidate, archive unverified",
+    "original_class_names": null,
+    "normalized_mapping": null,
+    "verified_image_count": null,
+    "verified_annotation_count": null,
+    "notes": "Version page lists download. Project page includes sample boxes and describes mixed in-hand, cartoon and studio images. Export IDs, rights, source groups and realistic negative handling remain unverified."
+  },
+  {
+    "name": "Roboflow Universe CCTV Gun Detector",
+    "url": "https://universe.roboflow.com/mohammadreza-anvari-h6ase/cctv-gun-detector",
+    "version": "1 (export page reviewed)",
+    "license": null,
+    "download_date": null,
+    "annotation_format": "YOLO and VOC exports listed",
+    "original_class_names": [
+      "Guns",
+      "Guns perspective",
+      "Long guns"
+    ],
+    "normalized_mapping": null,
+    "verified_image_count": null,
+    "verified_annotation_count": null,
+    "notes": "Names are from the published project presentation. Exact export names, source-video grouping and licensing of original images remain unverified."
+  },
+  {
+    "name": "OD-WeaponDetection Pistol detection",
+    "url": "https://github.com/ari-dasci/OD-WeaponDetection",
+    "version": "33b41b33948cb435113eb5f6b7b476df773ab2d9 (Pistol detection directory)",
+    "license": "Conflicting upstream declarations: README CC BY-SA 4.0, License.md CC BY 4.0",
+    "download_date": null,
+    "annotation_format": "XML files listed under Pistol detection/xmls",
+    "original_class_names": [
+      "pistol (one inspected XML sample)"
+    ],
+    "normalized_mapping": null,
+    "verified_image_count": null,
+    "verified_annotation_count": null,
+    "notes": "Upstream lists images and XML. One XML was inspected and contains two pistol boxes. Resolve the conflicting upstream license declarations and confirm third-party media rights before using or redistributing a dataset export. Archive-wide counts remain unverified."
+  }
+]
