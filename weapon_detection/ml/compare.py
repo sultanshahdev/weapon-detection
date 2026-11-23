@@ -467,7 +467,7 @@ def requirement_rows(facts: dict) -> list[dict]:
             "runs on CPU or free Colab",
             True,
             False,
-            "README.md (ML experiment); notebooks/03_yolo_colab.ipynb",
+            "README.md (Reproducing); notebooks/03_yolo_colab.ipynb",
         ),
         row(
             "AI tools listed honestly in the report",

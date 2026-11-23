@@ -219,7 +219,8 @@ NOTEBOOKS = {
             ),
             None,
         ),
-        ("**Seed.**", SEED_CELL),
+        # Notebook 04 links figures instead of embedding them, so it does not import Image.
+        ("**Seed.**", SEED_CELL.replace("import Image, display", "import display")),
         (
             "**Step 1 - Regenerate tables, figures and report numbers.** This also checks that "
             "every metric in the table can be recomputed from the saved prediction files.",
@@ -239,10 +240,15 @@ NOTEBOOKS = {
             "Markdown((OUTPUT_DIR / 'results' / 'detection_metrics.md').read_text())",
         ),
         (
-            "**Step 4 - Comparison figures.**",
-            "for path in sorted((OUTPUT_DIR / 'figures').glob('fig_*.png')):\n"
-            "    print(path.name)\n"
-            "    display(Image(filename=str(path), width=700))",
+            "**Step 4 - Comparison figures.** The figures are linked, not embedded, to keep "
+            "this notebook small. Copies are in `report_assets/figures/` "
+            "(`uv run python scripts/build_report_assets.py`); originals in "
+            "`outputs/ml/figures/`.",
+            "from pathlib import Path\n\n"
+            "assets = Path('..') / 'report_assets' / 'figures'  # relative to notebooks/\n"
+            "names = [p.name for p in sorted((OUTPUT_DIR / 'figures').glob('fig_*.png'))]\n"
+            "display(Markdown('\\n\\n'.join(f'**{n}**\\n\\n![{n}]({(assets / n).as_posix()})' "
+            "for n in names)))",
         ),
         (
             "**Step 5 - Course requirement checklist** (strict; generated from the files).",

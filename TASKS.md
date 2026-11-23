@@ -2,9 +2,8 @@
 
 ## Current priority
 
-Use the verified OIV7 checkpoint for the prerecorded demo. Acquire a rights-reviewed
-held-out dataset and independent clips to measure accuracy. Update this file as tasks
-change status.
+Submit: push the repository, add the fine-tuned weights link and a code licence, and write
+the report (student). Update this file as tasks change status.
 
 ## Completed
 
@@ -29,13 +28,14 @@ change status.
 
 ## Partially completed
 
-- [ ] Candidate source-page metadata recorded. Verify final media rights and annotation quality.
-- [ ] Metric engine verified with fixtures. Measure held-out accuracy on approved data.
+- [x] Dataset chosen and licence recorded from its files (Roboflow "Weapon Detection-1" v4, CC BY 4.0).
+- [ ] Verify the Roboflow page title (may be "Pose Integrated Firearm Detection"; page returned HTTP 403).
+- [x] Held-out image-level and detection metrics measured on TEST split v2.
 
 ## Blocked
 
-- Held-out accuracy requires an approved labeled split with reviewed source overlap.
-- Independent surveillance evaluation requires permitted representative clips.
+- Independent surveillance (CCTV) evaluation requires permitted representative clips with
+  event annotations. Not done.
 
 ## Not started
 
@@ -66,7 +66,7 @@ change status.
 - [x] Write the report evidence pack in `outputs/report/` (facts and placeholders only).
 - [ ] Write the error-analysis explanations (student's own work).
 - [ ] Write the figure takeaways, report prose and AI-use disclosure (student).
-- [ ] Fine-tune YOLOv8n in Colab (`notebooks/03_yolo_colab.ipynb`), then run `yolo_eval.py`
+- [x] Fine-tune YOLOv8n in Colab (`notebooks/03_yolo_colab.ipynb`), then run `yolo_eval.py`
   on `best.pt`.
 
 ## Mendeley video demo (demo source only, not used for any metric)
@@ -79,3 +79,16 @@ change status.
   and render from the cache; the app slider filters cached boxes without a model call.
 - [x] Demo footage facts (`demo_diagnostics.py`) and threshold summary (not an evaluation).
 - [ ] Optional: extract and precompute all 398 videos (`--all`).
+
+## Submission preparation
+
+- [x] Fine-tuned checkpoint is the default in every app (`default_checkpoint()`); OIV7 fallback.
+- [x] Named per-box confidence constants; alert defaults documented as not tuned.
+- [x] README Results (generated and asserted against `report_numbers.json`) and Reproducing.
+- [x] `report_assets/`, `NOTICE.md`, notebook 04 figures linked instead of embedded.
+- [ ] Push to GitHub (student).
+- [ ] Add the public link for `firearm_yolov8n_best.pt` (TODO in README).
+- [ ] Choose a code licence (TODO in NOTICE.md).
+- [ ] Report PDF, demo recording, AI-use disclosure, error-analysis explanations and EDA
+  takeaways (student).
+

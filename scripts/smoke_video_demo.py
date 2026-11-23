@@ -24,10 +24,9 @@ from weapon_detection.detection.annotated_video import (  # noqa: E402
     check_playable,
     render_annotated_video,
 )
-from weapon_detection.detection.model import YoloDetector  # noqa: E402
+from weapon_detection.detection.model import YoloDetector, default_checkpoint  # noqa: E402
 
 OUT_DIR = ROOT / "outputs" / "demo_videos"
-CHECKPOINTS = [ROOT / "models/firearm_yolov8n_best.pt", ROOT / "models/yolov8n-oiv7.pt"]
 PORT = 8598
 
 
@@ -90,7 +89,7 @@ def main() -> None:
 
     print("GT overlay only:")
     render(record, None, None)
-    checkpoint = next((p for p in CHECKPOINTS if p.is_file()), None)
+    checkpoint = default_checkpoint(ROOT)  # fine-tuned model, then the OIV7 fallback
     if checkpoint is None:
         print("No checkpoint found; model overlay skipped.")
     else:

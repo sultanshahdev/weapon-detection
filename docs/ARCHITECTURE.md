@@ -19,7 +19,10 @@ flowchart TD
 
 | Boundary | Responsibility |
 | --- | --- |
-| `detection/model.py` | Loads an explicit trusted local checkpoint, checks actual class names, and predicts pixel-coordinate detections on CPU. |
+| `detection/model.py` | Loads an explicit trusted local checkpoint, checks actual class names, and predicts pixel-coordinate detections on CPU (single frame or batch). `default_checkpoint()` is the shared rule: fine-tuned model, then OIV7. |
+| `detection/demo_cache.py`, `detection/annotated_video.py` | Video demo only: cached model boxes per Mendeley video, confidence filtering, IoU facts, and H.264 rendering with GT (green) and model (red) boxes. |
+| `data/mendeley_videos.py` | Lists Mendeley demo videos and reads their COCO boxes (1-based frame ids to 0-based). |
+| `ml/` | Course experiment, independent of the apps: data preparation, split v2, features, EDA, classical models, YOLO export/evaluation, comparison and report evidence. `ml/predict.py` serves `predict_app.py`. |
 | `detection/video_processor.py` | Owns the capture, annotates processed frames, yields `FrameResult`, and validates the optional encoded output. |
 | `detection/export.py` | Shares the frame-level CSV schema between the CLI and coordinator. |
 | `incidents/alert_engine.py` | Keeps per-run temporal state and emits deterministic IDs based on the run and confirming frame. |
@@ -56,3 +59,7 @@ Cache keys include checkpoint path, file revision, confidence, and image size.
 Streamlit script replaces one inline image and status together, keeping only
 recent timing samples. It closes the active capture on disconnect or exit and
 shares the same checkpoint cache implementation as the dashboard.
+
+`predict_app.py` and `video_demo_app.py` are separate Streamlit entry points. The first
+uses `ml/predict.py` with the validation-chosen thresholds; the second reads cached boxes
+from `outputs/demo_cache/` and never calls the model unless asked for an uncached video.

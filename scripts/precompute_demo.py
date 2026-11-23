@@ -53,10 +53,9 @@ from weapon_detection.detection.demo_cache import (  # noqa: E402
     summary_rows,
     write_cache,
 )
-from weapon_detection.detection.model import YoloDetector  # noqa: E402
+from weapon_detection.detection.model import YoloDetector, default_checkpoint  # noqa: E402
 
 SEED = 42
-CHECKPOINTS = [ROOT / "models/firearm_yolov8n_best.pt", ROOT / "models/yolov8n-oiv7.pt"]
 SELECTION = CACHE_DIR / "demo_selection.json"
 VIDEO_DIR = ROOT / "outputs" / "demo_videos"
 # Frames per model call, set from the --benchmark result (2026-11-23, this CPU,
@@ -150,7 +149,7 @@ def main() -> None:
 
     torch.manual_seed(SEED)
 
-    checkpoint = next((p for p in CHECKPOINTS if p.is_file()), None)
+    checkpoint = default_checkpoint(ROOT)  # fine-tuned model, then the OIV7 fallback
     if checkpoint is None:
         raise SystemExit("No checkpoint in models/.")
     records, first = chosen_records(args.all)

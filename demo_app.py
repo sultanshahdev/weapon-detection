@@ -13,6 +13,7 @@ import streamlit as st
 from streamlit import config, runtime
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
+from weapon_detection.detection.model import default_checkpoint
 from weapon_detection.detection.playlist import playlist_frames
 from weapon_detection.ui.demo import (
     DEMO_CSS,
@@ -25,6 +26,9 @@ from weapon_detection.ui.monitor import VIDEO_SUFFIXES, approved_files, cached_d
 from weapon_detection.utils.config import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
+# Default per-box confidence for this screen (override with WD_DEMO_CONFIDENCE). A display
+# setting, not tuned on any data; the status line reflects boxes at this confidence.
+DEMO_BOX_CONFIDENCE = 0.35
 
 
 @st.cache_resource(scope="session", show_spinner=False)
@@ -47,7 +51,11 @@ def main() -> None:
             screen(message="Place MP4, AVI, MOV, MKV or WebM clips in datasets/demo_playlist/.")
         )
         return
-    checkpoint = PROJECT_ROOT / "models/yolov8n-oiv7.pt"
+    # Fine-tuned model if present, otherwise the OIV7 fallback (same rule as every app).
+    checkpoint = default_checkpoint(PROJECT_ROOT)
+    if checkpoint is None:
+        display.html(screen(message="Place a checkpoint in models/ (see README)."))
+        return
     context = get_script_run_ctx()
 
     def active() -> bool:
@@ -61,7 +69,7 @@ def main() -> None:
     try:
         image_size = int(os.getenv("WD_DEMO_IMGSZ", "416"))
         stride = int(os.getenv("WD_DEMO_STRIDE", "1"))
-        confidence = float(os.getenv("WD_DEMO_CONFIDENCE", "0.35"))
+        confidence = float(os.getenv("WD_DEMO_CONFIDENCE", str(DEMO_BOX_CONFIDENCE)))
         if image_size < 32 or image_size % 32 or stride < 1 or not 0 <= confidence <= 1:
             raise ValueError("Invalid demo inference settings.")
     except ValueError:
@@ -86,7 +94,7 @@ def main() -> None:
             )
         except (ValueError, OSError, RuntimeError):
             logger.exception("Demo checkpoint could not load")
-            display.html(screen(message="Check the local checkpoint at models/yolov8n-oiv7.pt."))
+            display.html(screen(message=f"Check the local checkpoint at {checkpoint.name}."))
             return
 
         timestamps: deque[float] = deque(maxlen=16)

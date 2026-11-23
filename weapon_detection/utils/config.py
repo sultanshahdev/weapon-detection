@@ -10,6 +10,17 @@ from dotenv import dotenv_values
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MAX_SERVER_UPLOAD_MB = 200
+# Default per-box confidence for drawing boxes and feeding the alert rule in the dashboard
+# (override with WD_CONFIDENCE_THRESHOLD). It is a display/alert setting, not tuned on any
+# data, and it is NOT the validation-chosen image-level threshold (0.12, used in
+# predict_app.py from outputs/ml/chosen_settings.json).
+DEFAULT_BOX_CONFIDENCE = 0.50
+# Temporal alert defaults (WD_ALERT_*). They were chosen by hand and NOT tuned on any data.
+DEFAULT_ALERT_CONFIRMATION_FRAMES = 3
+DEFAULT_ALERT_WINDOW = 5
+DEFAULT_ALERT_COOLDOWN_SECONDS = 5
+DEFAULT_ALERT_MAX_GAP_SECONDS = 3
+DEFAULT_ALERT_RESET_MISSES = 3
 
 
 class ConfigurationError(ValueError):
@@ -74,13 +85,13 @@ def load_settings(
         except (OSError, RuntimeError, ValueError) as exc:
             raise ConfigurationError(f"WD_{key} must be a valid path.") from exc
 
-    confidence = float(number("CONFIDENCE_THRESHOLD", "0.50", float))
-    frames = int(number("ALERT_CONFIRMATION_FRAMES", "3", int))
-    cooldown = float(number("ALERT_COOLDOWN_SECONDS", "5", float))
+    confidence = float(number("CONFIDENCE_THRESHOLD", str(DEFAULT_BOX_CONFIDENCE), float))
+    frames = int(number("ALERT_CONFIRMATION_FRAMES", str(DEFAULT_ALERT_CONFIRMATION_FRAMES), int))
+    cooldown = float(number("ALERT_COOLDOWN_SECONDS", str(DEFAULT_ALERT_COOLDOWN_SECONDS), float))
     upload = int(number("MAX_UPLOAD_MB", str(MAX_SERVER_UPLOAD_MB), int))
-    window = int(number("ALERT_WINDOW", "5", int))
-    gap = float(number("ALERT_MAX_GAP_SECONDS", "3", float))
-    misses = int(number("ALERT_RESET_MISSES", "3", int))
+    window = int(number("ALERT_WINDOW", str(DEFAULT_ALERT_WINDOW), int))
+    gap = float(number("ALERT_MAX_GAP_SECONDS", str(DEFAULT_ALERT_MAX_GAP_SECONDS), float))
+    misses = int(number("ALERT_RESET_MISSES", str(DEFAULT_ALERT_RESET_MISSES), int))
     max_video_frames = int(number("MAX_VIDEO_FRAMES", "300", int))
     if window < frames:
         raise ConfigurationError("WD_ALERT_WINDOW must be at least WD_ALERT_CONFIRMATION_FRAMES.")

@@ -1,5 +1,9 @@
 # Demonstration
 
+Note: the dashboard and the full-screen player now default to the fine-tuned checkpoint
+`models/firearm_yolov8n_best.pt` (fallback `models/yolov8n-oiv7.pt`). The observed results
+recorded below were made earlier with `yolov8n-oiv7.pt` and are kept as recorded.
+
 Streamlit supports the upload, analysis, and review walkthrough below. The CLI
 variant is also available.
 

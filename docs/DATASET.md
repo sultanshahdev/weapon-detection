@@ -1,9 +1,51 @@
-# Dataset preparation
+# Datasets
 
-[Source manifest](../datasets/sources.json) records published metadata, with nulls
-for unverified fields. Source pages and example annotations were reviewed. No
-candidate dataset archive was downloaded. Local images and annotations have been
-counted only for generated test fixtures.
+## Dataset used for all reported results: Roboflow "Weapon Detection-1" v4
+
+The ML experiment and the fine-tuned detector use one dataset. It is a Roboflow export in
+YOLOv8 format, saved as `datasets/raw/Weapon Detection.zip` (git-ignored) and extracted by
+`weapon_detection/ml/prepare_data.py` into `datasets/raw/weapon_detection_extracted/`.
+Attribution, copied exactly from `README.dataset.txt` in the export:
+
+```text
+# Weapon Detection-1 > OAWD_6_Classes-sohas-
+https://universe.roboflow.com/weapon-detection-oss9n/weapon-detection-1-f9p7t
+
+Provided by a Roboflow user
+License: CC BY 4.0
+```
+
+- Version: "Weapon Detection-1 - v4 OAWD_6_Classes-sohas-" (`README.roboflow.txt`);
+  download page
+  <https://universe.roboflow.com/weapon-detection-oss9n/weapon-detection-1-f9p7t/dataset/4>.
+- Licence as stated in the dataset's own files (`README.dataset.txt`, `data.yaml`): CC BY 4.0.
+- TODO: verify the project title on the Roboflow page (it may be shown as "Pose Integrated
+  Firearm Detection"; the files above do not use that name).
+- Classes in `data.yaml`: Card, Currency Notes, Gun, Knife, Mobile, Pistol. `Gun` and
+  `Pistol` define `firearm_present = 1`; images with only other classes, or no boxes, are
+  negatives (`FIREARM_CLASS_NAMES` in `weapon_detection/ml/common.py`).
+- Image counts, per-split counts, object counts and the leakage audit are computed by code
+  and saved in `outputs/ml/audit.json` and `outputs/ml/report_numbers.json` (copies in
+  `report_assets/evidence/`).
+- The original Roboflow train/valid/test folders are not used as the split. Images are
+  grouped (source names, SHA-256 duplicates, dHash near duplicates, filename families) and
+  re-split with **split v2** (`weapon_detection/ml/split_v2.py`). Split v2 was made after
+  the preliminary split v1 test results were seen; split v1 is kept in
+  `outputs/ml/split_v1/` and disclosed in `outputs/ml/results/split_v1_vs_v2_test.csv`.
+- The one-class YOLO export for fine-tuning (`weapon_detection/ml/yolo_data.py`) uses the
+  same split; its counts are in `outputs/yolo_firearm/export_summary.json`.
+- Known limitations of this data are listed, computed by code, in
+  `outputs/report/limitations_facts.md` (also in the README).
+
+## Demo footage
+
+The Mendeley firearm-action videos (last section) are used only by `video_demo_app.py`.
+They are not part of any split or reported result.
+
+## Earlier candidate review (not used)
+
+Before the Roboflow dataset was chosen, these sources were reviewed from their published
+pages only; none was downloaded or used. `datasets/sources.json` records that metadata.
 
 | Candidate | Published evidence and acquisition decision |
 | --- | --- |
@@ -12,7 +54,11 @@ counted only for generated test fixtures.
 | CCTV Gun Detector | Version 1 lists YOLO and VOC formats. Verify the actual class definitions, media rights and original recording identifiers before use. [Project](https://universe.roboflow.com/mohammadreza-anvari-h6ase/cctv-gun-detector) · [Version 1](https://universe.roboflow.com/mohammadreza-anvari-h6ase/cctv-gun-detector/dataset/1) |
 | OD-WeaponDetection | Start here for a bounded manual audit. The README declares CC BY-SA 4.0 and the license file states CC BY 4.0. Resolve the discrepancy and confirm underlying media rights. One VOC XML contains two `pistol` boxes. Its paired image and archive-wide annotation quality remain unverified. [README license](https://github.com/ari-dasci/OD-WeaponDetection#license) · [License file](https://github.com/ari-dasci/OD-WeaponDetection/blob/master/License.md) · [Data tree](https://github.com/ari-dasci/OD-WeaponDetection/tree/master/Pistol%20detection) |
 
-## Local workflow
+## Generic preparation tools (Phase 2)
+
+The tools below (`scripts/inspect_dataset.py`, `scripts/prepare_dataset.py`) are a general VOC/YOLO preparation path from the dashboard phase. The ML experiment does not use them; it uses `weapon_detection/ml/prepare_data.py`.
+
+### Local workflow
 
 Obtain a reviewed subset directly from the upstream source and preserve its original
 source and split information under `datasets/raw/`. Record version, file hashes,

@@ -18,3 +18,7 @@ outputs/*
 *.pt
 *.sqlite3
 *.sqlite3-*
+# Archives, fitted models and local training runs anywhere in the tree
+*.zip
+*.joblib
+runs/

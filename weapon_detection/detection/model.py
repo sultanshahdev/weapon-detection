@@ -10,6 +10,20 @@ import numpy as np
 
 FIREARM_ALIASES = ("firearm", "gun", "handgun", "pistol", "revolver", "rifle", "shotgun")
 
+# Default checkpoint rule shared by every app: the fine-tuned single-class model if it
+# exists, otherwise the pretrained Open Images V7 model. Both are checked at load time by
+# YoloDetector (class names must include a firearm alias, otherwise it is rejected).
+FINETUNED_CHECKPOINT = Path("models/firearm_yolov8n_best.pt")
+PRETRAINED_CHECKPOINT = Path("models/yolov8n-oiv7.pt")
+
+
+def default_checkpoint(root: Path) -> Path | None:
+    """First existing checkpoint under root: fine-tuned, then OIV7; None if neither."""
+    for relative in (FINETUNED_CHECKPOINT, PRETRAINED_CHECKPOINT):
+        if (root / relative).is_file():
+            return root / relative
+    return None
+
 
 def normalize_label(label: str) -> str:
     return " ".join(label.casefold().split())

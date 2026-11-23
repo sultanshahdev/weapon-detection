@@ -1,0 +1,79 @@
+{
+  "rule": "(fixed before looking at any model output):\n- Handgun and Machine_Gun: score = (fraction of frames that have a GT box)\n  x (median GT box area as % of the frame). A high score means the firearm is visible in\n  many frames and is not tiny, which is what makes a demo easy to follow. Top 4 per class.\n- No_Gun has no boxes, so 2 videos are drawn at random with seed 42 from all 118 names.\nModel predictions are never used here, so the choice cannot favour the model.",
+  "videos": [
+    {
+      "class_name": "Handgun",
+      "name": "PCH1_C1_P4_V1_HB_2",
+      "frames": 125,
+      "gt_frame_fraction": 0.624,
+      "median_gt_area_pct": 0.671,
+      "score": 0.419
+    },
+    {
+      "class_name": "Handgun",
+      "name": "PAH9_C1_P4_V1_HB_1",
+      "frames": 175,
+      "gt_frame_fraction": 0.543,
+      "median_gt_area_pct": 0.721,
+      "score": 0.3912
+    },
+    {
+      "class_name": "Handgun",
+      "name": "PCH3_C1_P4_V1_HB_1",
+      "frames": 125,
+      "gt_frame_fraction": 0.536,
+      "median_gt_area_pct": 0.711,
+      "score": 0.3811
+    },
+    {
+      "class_name": "Handgun",
+      "name": "PAH2_C1_P4_V1_HB_1",
+      "frames": 175,
+      "gt_frame_fraction": 0.469,
+      "median_gt_area_pct": 0.758,
+      "score": 0.3551
+    },
+    {
+      "class_name": "Machine_Gun",
+      "name": "PCW4_C1_P4_V1_HB_1",
+      "frames": 175,
+      "gt_frame_fraction": 0.463,
+      "median_gt_area_pct": 6.033,
+      "score": 2.7922
+    },
+    {
+      "class_name": "Machine_Gun",
+      "name": "PCW7_C1_P4_V1_HB_2",
+      "frames": 175,
+      "gt_frame_fraction": 0.509,
+      "median_gt_area_pct": 5.315,
+      "score": 2.7031
+    },
+    {
+      "class_name": "Machine_Gun",
+      "name": "PAW5_C1_P4_V1_HB_2",
+      "frames": 200,
+      "gt_frame_fraction": 0.52,
+      "median_gt_area_pct": 4.492,
+      "score": 2.3359
+    },
+    {
+      "class_name": "Machine_Gun",
+      "name": "PCW2_C2_P3_V2_HB_2",
+      "frames": 270,
+      "gt_frame_fraction": 0.615,
+      "median_gt_area_pct": 3.727,
+      "score": 2.2916
+    },
+    {
+      "class_name": "No_Gun",
+      "name": "N11_C2_P5_V1_HB_2",
+      "score": null
+    },
+    {
+      "class_name": "No_Gun",
+      "name": "N6_C2_P5_V1_HB_1",
+      "score": null
+    }
+  ]
+}

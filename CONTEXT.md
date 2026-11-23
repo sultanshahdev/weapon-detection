@@ -57,10 +57,13 @@ license, provenance, and local validation. Inspect actual checkpoint class names
 using it, map approved labels explicitly, and reject incompatible checkpoints. Generic
 COCO weights must never be assumed to support firearm detection.
 
-Research candidates include Dangerous Items Dataset v2, Roboflow Pistols, CCTV Gun
-Detector and OD-WeaponDetection. Source-level licensing observations are in
-`datasets/sources.json`. No candidate archive has been acquired. Follow the source grouping and validation process in
-[Dataset](docs/DATASET.md).
+The dataset used for every reported result is the Roboflow export "Weapon Detection-1"
+version 4 (YOLOv8 format, CC BY 4.0 as stated in its files; attribution in `NOTICE.md` and
+[Dataset](docs/DATASET.md)). `Gun` and `Pistol` boxes define the `firearm` class. The data
+is re-split by group (split v2, revised after preliminary split v1 test results were
+seen; v1 is kept and disclosed). A YOLOv8n model was fine-tuned on a one-class export in
+Colab (`models/firearm_yolov8n_best.pt`, git-ignored). The earlier candidate sources in
+`datasets/sources.json` were reviewed but not used.
 
 ## Alerts and storage
 
@@ -77,8 +80,11 @@ consistency on failure.
 Measure precision, recall, F1-score, mAP@50, mAP@50–95, inference latency, and false
 positives and negatives. Use independent positive and negative clips for the end-to-end
 evaluation. Report the checkpoint, data split, device, and settings with each result.
-Phase 2 measured CPU smoke-test timing. Held-out accuracy and independent video
-evaluation are pending.
+Held-out image-level results (TEST split v2) and detection metrics for the fine-tuned
+model are measured and listed in the README "Results" section and
+[Evaluation](docs/EVALUATION.md). Evaluation on real CCTV footage and incident-level
+(temporal alert) accuracy are not measured. The temporal alert defaults and the per-box
+display confidences were not tuned on any data.
 
 Risks include domain mismatch, poor annotations, limited GPU access, false alarms,
 missed detections, slow processing of large videos, codec compatibility, and the
@@ -123,3 +129,24 @@ under `datasets/demo_playlist/`. It reuses the cached CPU detector, capture iter
 and frame annotation. It shows inference frames as they finish and writes no videos
 or incidents. Chrome verified the existing positive and gray smoke fixtures. Longer
 approved presentation footage remains to be added.
+
+## ML experiment, fine-tuned model and video demo
+
+- `weapon_detection/ml/` holds the course experiment: data preparation and leakage audit,
+  handcrafted and HOG features, EDA, classical models, the YOLO export and evaluation, and
+  `compare.py`, which builds the final tables, figures and `report_numbers.json`. Thresholds
+  are chosen on validation only; TEST is used once per model.
+- Every app chooses its checkpoint with `default_checkpoint()` in
+  `weapon_detection/detection/model.py`: the fine-tuned `models/firearm_yolov8n_best.pt` if
+  present, otherwise `models/yolov8n-oiv7.pt`. The adapter accepts a checkpoint only if its
+  class names include a firearm label.
+- `predict_app.py` shows an image-level decision with the validation-chosen threshold
+  (0.12 for the fine-tuned YOLO model). The dashboard and `demo_app.py` draw boxes with
+  per-box display confidences that were not tuned.
+- `video_demo_app.py` is a demo-only tool on 10 Mendeley videos
+  (`outputs/demo_cache/demo_selection.json`, chosen from the dataset's own annotations).
+  That footage is outside every split, is not part of any reported result and was not used
+  to choose any threshold.
+- `report_assets/` is the tracked copy of the final evidence (tables, figures, settings,
+  audit, checklist and the video-demo text files).
+

@@ -1,0 +1,752 @@
+{
+  "seed": {
+    "source": "weapon_detection/ml/common.py",
+    "value": 42
+  },
+  "license": {
+    "source": "datasets/raw/weapon_detection_extracted/data.yaml + README.dataset.txt",
+    "data_yaml_license": "CC BY 4.0",
+    "readme_license_lines": [
+      "License: CC BY 4.0"
+    ],
+    "roboflow_url": "https://universe.roboflow.com/weapon-detection-oss9n/weapon-detection-1-f9p7t/dataset/4"
+  },
+  "dataset": {
+    "source": "outputs/ml/audit.json",
+    "class_names": [
+      "Card",
+      "Currency Notes",
+      "Gun",
+      "Knife",
+      "Mobile",
+      "Pistol"
+    ],
+    "firearm_classes": [
+      "Gun",
+      "Pistol"
+    ],
+    "images": 9425,
+    "positives": 8304,
+    "negatives": 1121,
+    "hard_negatives_with_other_objects": 1094,
+    "no_box_images": 27,
+    "per_original_split": {
+      "train": {
+        "images": 6598,
+        "label_files": 6598,
+        "images_without_label_file": 0,
+        "label_files_without_image": 0,
+        "empty_label_files": 14,
+        "malformed_label_lines": 0,
+        "corrupt_images": 0,
+        "objects_per_class": {
+          "Card": 14,
+          "Currency Notes": 133,
+          "Gun": 4539,
+          "Knife": 597,
+          "Mobile": 68,
+          "Pistol": 3033
+        }
+      },
+      "valid": {
+        "images": 1884,
+        "label_files": 1884,
+        "images_without_label_file": 0,
+        "label_files_without_image": 0,
+        "empty_label_files": 8,
+        "malformed_label_lines": 0,
+        "corrupt_images": 0,
+        "objects_per_class": {
+          "Card": 2,
+          "Currency Notes": 41,
+          "Gun": 1260,
+          "Knife": 172,
+          "Mobile": 12,
+          "Pistol": 861
+        }
+      },
+      "test": {
+        "images": 943,
+        "label_files": 943,
+        "images_without_label_file": 0,
+        "label_files_without_image": 0,
+        "empty_label_files": 5,
+        "malformed_label_lines": 0,
+        "corrupt_images": 0,
+        "objects_per_class": {
+          "Card": 4,
+          "Currency Notes": 18,
+          "Gun": 656,
+          "Knife": 91,
+          "Mobile": 8,
+          "Pistol": 417
+        }
+      }
+    }
+  },
+  "leakage_audit": {
+    "source": "outputs/ml/audit.json",
+    "same_source_pairs": 0,
+    "exact_duplicate_pairs": 0,
+    "near_duplicate_pairs": 1734,
+    "near_duplicate_pairs_crossing_original_split": 754,
+    "near_duplicate_label_conflicts": 5,
+    "families": {
+      "billete": 179,
+      "kravmagatraining": 159,
+      "defensetechniques": 115,
+      "defenseknifeattack": 88,
+      "rusoclases": 23,
+      "abbframe": 22,
+      "mbbframe": 21,
+      "lbbframe": 19,
+      "hbbframe": 17,
+      "mbmframe": 17,
+      "lbmframe": 15,
+      "hbsframe": 14,
+      "lbsframe": 14,
+      "krav": 13,
+      "abmframe": 12,
+      "absframe": 12,
+      "hbmframe": 12,
+      "mbsframe": 11,
+      "realityknifeattacks": 9,
+      "defenseandsurvive": 6
+    },
+    "before_family_fix": {
+      "merged_groups": 8323,
+      "groups_with_more_than_one_image": 823,
+      "images_in_multi_image_groups": 1925,
+      "largest_group_size": 36,
+      "groups_in_more_than_one_split": 0,
+      "near_duplicate_pairs_across_splits": 0,
+      "families_spanning_splits": 16,
+      "split": {
+        "train": {
+          "images": 7539,
+          "positives": 6642,
+          "negatives": 897,
+          "groups": 6661
+        },
+        "val": {
+          "images": 943,
+          "positives": 831,
+          "negatives": 112,
+          "groups": 835
+        },
+        "test": {
+          "images": 943,
+          "positives": 831,
+          "negatives": 112,
+          "groups": 827
+        }
+      }
+    },
+    "after_family_fix_split_v1": {
+      "merged_groups": 7813,
+      "groups_with_more_than_one_image": 763,
+      "images_in_multi_image_groups": 2375,
+      "largest_group_size": 181,
+      "groups_in_more_than_one_split": 0,
+      "near_duplicate_pairs_across_splits": 0,
+      "families_spanning_splits": 0,
+      "split": {
+        "train": {
+          "images": 7425,
+          "positives": 6644,
+          "negatives": 781,
+          "groups": 6310
+        },
+        "val": {
+          "images": 989,
+          "positives": 830,
+          "negatives": 159,
+          "groups": 751
+        },
+        "test": {
+          "images": 1011,
+          "positives": 830,
+          "negatives": 181,
+          "groups": 752
+        }
+      }
+    },
+    "split_v2": {
+      "note": "Revision made AFTER seeing preliminary split-v1 test results: v1 val negatives came from one video and test negatives almost all from one family.",
+      "rule": "3 largest negative groups -> train; random negative groups (seed 42) until test and val each have >= 90 negatives from >= 8 groups, no group > 25%; positive groups random until val and test each hold >= 10% of positives",
+      "summary": {
+        "merged_groups": 7813,
+        "groups_with_more_than_one_image": 763,
+        "images_in_multi_image_groups": 2375,
+        "largest_group_size": 181,
+        "groups_in_more_than_one_split": 0,
+        "near_duplicate_pairs_across_splits": 0,
+        "families_spanning_splits": 0,
+        "split": {
+          "train": {
+            "images": 7583,
+            "positives": 6642,
+            "negatives": 941,
+            "groups": 6155
+          },
+          "val": {
+            "images": 921,
+            "positives": 831,
+            "negatives": 90,
+            "groups": 814
+          },
+          "test": {
+            "images": 921,
+            "positives": 831,
+            "negatives": 90,
+            "groups": 844
+          }
+        }
+      },
+      "negative_sources_v1": {
+        "train": {
+          "images": 7425,
+          "positives": 6644,
+          "negatives": 781,
+          "distinct_negative_groups": 317,
+          "largest_negative_group_share": 0.1472
+        },
+        "val": {
+          "images": 989,
+          "positives": 830,
+          "negatives": 159,
+          "distinct_negative_groups": 1,
+          "largest_negative_group_share": 1.0
+        },
+        "test": {
+          "images": 1011,
+          "positives": 830,
+          "negatives": 181,
+          "distinct_negative_groups": 1,
+          "largest_negative_group_share": 1.0
+        }
+      },
+      "negative_sources_v2": {
+        "train": {
+          "images": 7583,
+          "positives": 6642,
+          "negatives": 941,
+          "distinct_negative_groups": 151,
+          "largest_negative_group_share": 0.1923
+        },
+        "val": {
+          "images": 921,
+          "positives": 831,
+          "negatives": 90,
+          "distinct_negative_groups": 87,
+          "largest_negative_group_share": 0.0222
+        },
+        "test": {
+          "images": 921,
+          "positives": 831,
+          "negatives": 90,
+          "distinct_negative_groups": 81,
+          "largest_negative_group_share": 0.0444
+        }
+      }
+    }
+  },
+  "chosen_settings": {
+    "source": "outputs/ml/chosen_settings.json",
+    "values": {
+      "baseline_handcrafted": {
+        "params": {},
+        "threshold": null,
+        "val_macro_f1_at_threshold": 0.4743150684931507,
+        "train_seconds": 0.0090683070002342,
+        "imgsz": null
+      },
+      "logreg_handcrafted": {
+        "params": {
+          "C": 0.1
+        },
+        "threshold": 0.32,
+        "val_macro_f1_at_threshold": 0.6076272933415791,
+        "train_seconds": 0.05054876200028957,
+        "imgsz": null
+      },
+      "logreg_handcrafted_hog": {
+        "params": {
+          "C": 0.001
+        },
+        "threshold": 0.47,
+        "val_macro_f1_at_threshold": 0.6760583195955432,
+        "train_seconds": 0.9623450850003792,
+        "imgsz": null
+      },
+      "random_forest_handcrafted": {
+        "params": {
+          "max_depth": 10,
+          "min_samples_leaf": 1
+        },
+        "threshold": 0.49,
+        "val_macro_f1_at_threshold": 0.6574255461601408,
+        "train_seconds": 2.162585856000078,
+        "imgsz": null
+      },
+      "random_forest_handcrafted_hog": {
+        "params": {
+          "max_depth": 10,
+          "min_samples_leaf": 1
+        },
+        "threshold": 0.76,
+        "val_macro_f1_at_threshold": 0.6811346302168138,
+        "train_seconds": 17.16816264299996,
+        "imgsz": null
+      },
+      "yolov8n_oiv7_pretrained": {
+        "params": null,
+        "threshold": 0.01,
+        "val_macro_f1_at_threshold": 0.44446152543366535,
+        "train_seconds": null,
+        "imgsz": 640
+      },
+      "yolov8n_finetuned": {
+        "params": null,
+        "threshold": 0.12,
+        "val_macro_f1_at_threshold": 0.8560176423042765,
+        "train_seconds": null,
+        "imgsz": 640
+      }
+    }
+  },
+  "test_metrics": {
+    "source": "outputs/ml/results/final_test_table.csv",
+    "rows": [
+      {
+        "model": "Majority baseline",
+        "family": "trivial (DummyClassifier)",
+        "main_model": "",
+        "precision": 0.9023,
+        "recall": 1.0,
+        "f1": 0.9486,
+        "accuracy": 0.9023,
+        "balanced_accuracy": 0.5,
+        "macro_f1": 0.4743,
+        "neg_precision": 0.0,
+        "neg_recall": 0.0,
+        "neg_f1": 0.0,
+        "roc_auc": 0.5,
+        "pr_auc": 0.9023,
+        "threshold": NaN,
+        "predict_ms_per_image": 0.0006
+      },
+      {
+        "model": "Logistic Regression (handcrafted)",
+        "family": "linear model",
+        "main_model": "",
+        "precision": 0.9216,
+        "recall": 0.9194,
+        "f1": 0.9205,
+        "accuracy": 0.8567,
+        "balanced_accuracy": 0.5986,
+        "macro_f1": 0.5976,
+        "neg_precision": 0.2717,
+        "neg_recall": 0.2778,
+        "neg_f1": 0.2747,
+        "roc_auc": 0.6371,
+        "pr_auc": 0.9382,
+        "threshold": 0.32,
+        "predict_ms_per_image": 0.0013
+      },
+      {
+        "model": "Random Forest (handcrafted)",
+        "family": "tree ensemble",
+        "main_model": "",
+        "precision": 0.929,
+        "recall": 0.929,
+        "f1": 0.929,
+        "accuracy": 0.8719,
+        "balanced_accuracy": 0.6367,
+        "macro_f1": 0.6367,
+        "neg_precision": 0.3444,
+        "neg_recall": 0.3444,
+        "neg_f1": 0.3444,
+        "roc_auc": 0.7257,
+        "pr_auc": 0.9494,
+        "threshold": 0.49,
+        "predict_ms_per_image": 0.2478
+      },
+      {
+        "model": "Logistic Regression (handcrafted + HOG)",
+        "family": "linear model",
+        "main_model": "yes",
+        "precision": 0.9335,
+        "recall": 0.8953,
+        "f1": 0.914,
+        "accuracy": 0.848,
+        "balanced_accuracy": 0.6532,
+        "macro_f1": 0.6299,
+        "neg_precision": 0.2984,
+        "neg_recall": 0.4111,
+        "neg_f1": 0.3458,
+        "roc_auc": 0.7449,
+        "pr_auc": 0.9583,
+        "threshold": 0.47,
+        "predict_ms_per_image": 0.0105
+      },
+      {
+        "model": "Random Forest (handcrafted + HOG)",
+        "family": "tree ensemble",
+        "main_model": "yes",
+        "precision": 0.9344,
+        "recall": 0.9434,
+        "f1": 0.9389,
+        "accuracy": 0.8893,
+        "balanced_accuracy": 0.6662,
+        "macro_f1": 0.6729,
+        "neg_precision": 0.4268,
+        "neg_recall": 0.3889,
+        "neg_f1": 0.407,
+        "roc_auc": 0.7893,
+        "pr_auc": 0.9677,
+        "threshold": 0.76,
+        "predict_ms_per_image": 0.2611
+      },
+      {
+        "model": "YOLOv8n pretrained (Open Images, not fine-tuned)",
+        "family": "CNN object detector",
+        "main_model": "",
+        "precision": 0.9781,
+        "recall": 0.4308,
+        "f1": 0.5982,
+        "accuracy": 0.4777,
+        "balanced_accuracy": 0.671,
+        "macro_f1": 0.4262,
+        "neg_precision": 0.1477,
+        "neg_recall": 0.9111,
+        "neg_f1": 0.2543,
+        "roc_auc": 0.6661,
+        "pr_auc": 0.9343,
+        "threshold": 0.01,
+        "predict_ms_per_image": 107.7535
+      },
+      {
+        "model": "YOLOv8n fine-tuned (firearm)",
+        "family": "CNN object detector",
+        "main_model": "yes",
+        "precision": 0.9647,
+        "recall": 0.9543,
+        "f1": 0.9595,
+        "accuracy": 0.9273,
+        "balanced_accuracy": 0.816,
+        "macro_f1": 0.8025,
+        "neg_precision": 0.6162,
+        "neg_recall": 0.6778,
+        "neg_f1": 0.6455,
+        "roc_auc": 0.9211,
+        "pr_auc": 0.9887,
+        "threshold": 0.12,
+        "predict_ms_per_image": 146.6271
+      }
+    ]
+  },
+  "val_metrics": {
+    "source": "outputs/ml/results/final_val_table.csv",
+    "rows": [
+      {
+        "model": "Majority baseline",
+        "family": "trivial (DummyClassifier)",
+        "main_model": "",
+        "precision": 0.9023,
+        "recall": 1.0,
+        "f1": 0.9486,
+        "accuracy": 0.9023,
+        "balanced_accuracy": 0.5,
+        "macro_f1": 0.4743,
+        "neg_precision": 0.0,
+        "neg_recall": 0.0,
+        "neg_f1": 0.0,
+        "roc_auc": 0.5,
+        "pr_auc": 0.9023,
+        "threshold": NaN,
+        "predict_ms_per_image": 0.0006
+      },
+      {
+        "model": "Logistic Regression (handcrafted)",
+        "family": "linear model",
+        "main_model": "",
+        "precision": 0.93,
+        "recall": 0.8797,
+        "f1": 0.9041,
+        "accuracy": 0.8317,
+        "balanced_accuracy": 0.6343,
+        "macro_f1": 0.6076,
+        "neg_precision": 0.2593,
+        "neg_recall": 0.3889,
+        "neg_f1": 0.3111,
+        "roc_auc": 0.6621,
+        "pr_auc": 0.9391,
+        "threshold": 0.32,
+        "predict_ms_per_image": 0.0013
+      },
+      {
+        "model": "Random Forest (handcrafted)",
+        "family": "tree ensemble",
+        "main_model": "",
+        "precision": 0.9362,
+        "recall": 0.9182,
+        "f1": 0.9271,
+        "accuracy": 0.8697,
+        "balanced_accuracy": 0.6702,
+        "macro_f1": 0.6574,
+        "neg_precision": 0.3585,
+        "neg_recall": 0.4222,
+        "neg_f1": 0.3878,
+        "roc_auc": 0.7563,
+        "pr_auc": 0.9611,
+        "threshold": 0.49,
+        "predict_ms_per_image": 0.1478
+      },
+      {
+        "model": "Logistic Regression (handcrafted + HOG)",
+        "family": "linear model",
+        "main_model": "yes",
+        "precision": 0.9409,
+        "recall": 0.9194,
+        "f1": 0.93,
+        "accuracy": 0.8751,
+        "balanced_accuracy": 0.693,
+        "macro_f1": 0.6761,
+        "neg_precision": 0.3853,
+        "neg_recall": 0.4667,
+        "neg_f1": 0.4221,
+        "roc_auc": 0.7732,
+        "pr_auc": 0.9631,
+        "threshold": 0.47,
+        "predict_ms_per_image": 0.0103
+      },
+      {
+        "model": "Random Forest (handcrafted + HOG)",
+        "family": "tree ensemble",
+        "main_model": "yes",
+        "precision": 0.9366,
+        "recall": 0.9422,
+        "f1": 0.9394,
+        "accuracy": 0.8903,
+        "balanced_accuracy": 0.6767,
+        "macro_f1": 0.6811,
+        "neg_precision": 0.4353,
+        "neg_recall": 0.4111,
+        "neg_f1": 0.4229,
+        "roc_auc": 0.8021,
+        "pr_auc": 0.9683,
+        "threshold": 0.76,
+        "predict_ms_per_image": 0.1996
+      },
+      {
+        "model": "YOLOv8n pretrained (Open Images, not fine-tuned)",
+        "family": "CNN object detector",
+        "main_model": "",
+        "precision": 0.992,
+        "recall": 0.4465,
+        "f1": 0.6158,
+        "accuracy": 0.4973,
+        "balanced_accuracy": 0.7066,
+        "macro_f1": 0.4445,
+        "neg_precision": 0.159,
+        "neg_recall": 0.9667,
+        "neg_f1": 0.2732,
+        "roc_auc": 0.7039,
+        "pr_auc": 0.9416,
+        "threshold": 0.01,
+        "predict_ms_per_image": 100.6229
+      },
+      {
+        "model": "YOLOv8n fine-tuned (firearm)",
+        "family": "CNN object detector",
+        "main_model": "yes",
+        "precision": 0.9723,
+        "recall": 0.9711,
+        "f1": 0.9717,
+        "accuracy": 0.949,
+        "balanced_accuracy": 0.8578,
+        "macro_f1": 0.856,
+        "neg_precision": 0.7363,
+        "neg_recall": 0.7444,
+        "neg_f1": 0.7403,
+        "roc_auc": 0.9173,
+        "pr_auc": 0.9862,
+        "threshold": 0.12,
+        "predict_ms_per_image": 149.7863
+      }
+    ]
+  },
+  "split_v1_vs_v2_test": {
+    "source": "outputs/ml/results/split_v1_vs_v2_test.csv",
+    "rows": [
+      {
+        "model": "baseline",
+        "feature_set": "n/a (ignores input)",
+        "macro_f1": 0.4508,
+        "neg_precision": 0.0,
+        "neg_recall": 0.0,
+        "neg_f1": 0.0,
+        "balanced_accuracy": 0.5,
+        "accuracy": 0.821,
+        "roc_auc": 0.5,
+        "pr_auc": 0.821,
+        "split_version": "v1"
+      },
+      {
+        "model": "baseline",
+        "feature_set": "n/a (ignores input)",
+        "macro_f1": 0.4743,
+        "neg_precision": 0.0,
+        "neg_recall": 0.0,
+        "neg_f1": 0.0,
+        "balanced_accuracy": 0.5,
+        "accuracy": 0.9023,
+        "roc_auc": 0.5,
+        "pr_auc": 0.9023,
+        "split_version": "v2"
+      },
+      {
+        "model": "logreg",
+        "feature_set": "handcrafted_hog",
+        "macro_f1": 0.5924,
+        "neg_precision": 0.3623,
+        "neg_recall": 0.2762,
+        "neg_f1": 0.3135,
+        "balanced_accuracy": 0.5851,
+        "accuracy": 0.7834,
+        "roc_auc": 0.6227,
+        "pr_auc": 0.8672,
+        "split_version": "v1"
+      },
+      {
+        "model": "logreg",
+        "feature_set": "handcrafted_hog",
+        "macro_f1": 0.6299,
+        "neg_precision": 0.2984,
+        "neg_recall": 0.4111,
+        "neg_f1": 0.3458,
+        "balanced_accuracy": 0.6532,
+        "accuracy": 0.848,
+        "roc_auc": 0.7449,
+        "pr_auc": 0.9583,
+        "split_version": "v2"
+      },
+      {
+        "model": "random_forest",
+        "feature_set": "handcrafted_hog",
+        "macro_f1": 0.5634,
+        "neg_precision": 0.3066,
+        "neg_recall": 0.232,
+        "neg_f1": 0.2642,
+        "balanced_accuracy": 0.5588,
+        "accuracy": 0.7685,
+        "roc_auc": 0.6597,
+        "pr_auc": 0.9008,
+        "split_version": "v1"
+      },
+      {
+        "model": "random_forest",
+        "feature_set": "handcrafted_hog",
+        "macro_f1": 0.6729,
+        "neg_precision": 0.4268,
+        "neg_recall": 0.3889,
+        "neg_f1": 0.407,
+        "balanced_accuracy": 0.6662,
+        "accuracy": 0.8893,
+        "roc_auc": 0.7893,
+        "pr_auc": 0.9677,
+        "split_version": "v2"
+      }
+    ]
+  },
+  "detection_metrics": {
+    "source": "outputs/ml/results/detection_metrics.csv",
+    "rows": [
+      {
+        "checkpoint_key": "yolov8n_finetuned",
+        "checkpoint": "models/firearm_yolov8n_best.pt",
+        "split": "test",
+        "imgsz": 640,
+        "mAP50": 0.742074211858049,
+        "mAP50_95": 0.4297705930875303,
+        "precision": 0.7836066863986991,
+        "recall": 0.6602209944751382
+      }
+    ]
+  },
+  "timing": {
+    "source": "outputs/ml/results/final_test_table.csv + compare.py timing",
+    "feature_extraction_ms_per_image": 45.67,
+    "predict_ms_per_image": {
+      "Majority baseline": 0.0006,
+      "Logistic Regression (handcrafted)": 0.0013,
+      "Random Forest (handcrafted)": 0.2478,
+      "Logistic Regression (handcrafted + HOG)": 0.0105,
+      "Random Forest (handcrafted + HOG)": 0.2611,
+      "YOLOv8n pretrained (Open Images, not fine-tuned)": 107.7535,
+      "YOLOv8n fine-tuned (firearm)": 146.6271
+    },
+    "train_seconds": {
+      "baseline_handcrafted": 0.0090683070002342,
+      "logreg_handcrafted": 0.05054876200028957,
+      "logreg_handcrafted_hog": 0.9623450850003792,
+      "random_forest_handcrafted": 2.162585856000078,
+      "random_forest_handcrafted_hog": 17.16816264299996,
+      "yolov8n_oiv7_pretrained": null,
+      "yolov8n_finetuned": null
+    }
+  },
+  "yolo_export": {
+    "source": "outputs/yolo_firearm/export_summary.json",
+    "summary": {
+      "train": {
+        "images": 3200,
+        "with_firearm": 2259,
+        "background": 941,
+        "firearm_boxes": 2838
+      },
+      "val": {
+        "images": 921,
+        "with_firearm": 831,
+        "background": 90,
+        "firearm_boxes": 1075
+      },
+      "test": {
+        "images": 921,
+        "with_firearm": 831,
+        "background": 90,
+        "firearm_boxes": 1086
+      },
+      "train_cap": 3200,
+      "seed": 42,
+      "split_column": "split (v2)"
+    }
+  },
+  "models_in_table": [
+    "Majority baseline",
+    "Logistic Regression (handcrafted)",
+    "Random Forest (handcrafted)",
+    "Logistic Regression (handcrafted + HOG)",
+    "Random Forest (handcrafted + HOG)",
+    "YOLOv8n pretrained (Open Images, not fine-tuned)",
+    "YOLOv8n fine-tuned (firearm)"
+  ],
+  "fine_tuned_yolo_included": true,
+  "fine_tuned_checkpoint_exists": true,
+  "package_versions": {
+    "source": "importlib.metadata",
+    "values": {
+      "numpy": "2.4.6",
+      "pandas": "3.1.1",
+      "scikit-learn": "1.9.1",
+      "scikit-image": "0.26.0",
+      "opencv-python": "5.1.0.95",
+      "matplotlib": "3.11.2",
+      "joblib": "1.6.0",
+      "torch": "2.15.0+cpu",
+      "ultralytics": "8.4.216",
+      "streamlit": "1.67.0"
+    }
+  }
+}

@@ -12,7 +12,7 @@ import cv2
 import pandas as pd
 import streamlit as st
 
-from weapon_detection.detection.model import YoloDetector
+from weapon_detection.detection.model import YoloDetector, default_checkpoint
 from weapon_detection.incidents.alert_engine import AlertRules
 from weapon_detection.incidents.incident_manager import AnalysisResult, analyze_video
 from weapon_detection.storage.evidence import EvidenceStore
@@ -81,10 +81,9 @@ def render_monitor(settings: Settings, repository: IncidentRepository, evidence:
         models = [settings.model_path, *(p for p in models if p != settings.model_path)]
     else:
         st.warning("The configured model file is unavailable. Check WD_MODEL_PATH.")
+    # WD_MODEL_PATH wins; otherwise the fine-tuned model, then the OIV7 fallback.
     preferred = (
-        settings.model_path
-        if settings.model_path in models
-        else (PROJECT_ROOT / "models" / "yolov8n-oiv7.pt")
+        settings.model_path if settings.model_path in models else default_checkpoint(PROJECT_ROOT)
     )
     if not models:
         st.warning(

@@ -45,18 +45,13 @@ from weapon_detection.detection.demo_cache import (
     threshold_facts,
     write_cache,
 )
-from weapon_detection.detection.model import YoloDetector
+from weapon_detection.detection.model import YoloDetector, default_checkpoint
 from weapon_detection.ml.common import SEED
 from weapon_detection.utils.config import PROJECT_ROOT
 
 OUT_DIR = PROJECT_ROOT / "outputs" / "demo_videos"
 SELECTION = CACHE_DIR / "demo_selection.json"
 DEMO_SET = "Demo selection"
-# First existing checkpoint wins: my fine-tuned model, then the pretrained OIV7 fallback.
-CHECKPOINTS = [
-    PROJECT_ROOT / "models/firearm_yolov8n_best.pt",
-    PROJECT_ROOT / "models/yolov8n-oiv7.pt",
-]
 
 CAPTION = (
     "Demo footage from the Mendeley dataset (Ruiz-Santaquiteria et al., DOI "
@@ -155,7 +150,8 @@ def main() -> None:
             "Run `uv run python scripts/extract_mendeley_videos.py` (see README, Video demo)."
         )
         return
-    checkpoint = next((p for p in CHECKPOINTS if p.is_file()), None)
+    # Fine-tuned model if present, otherwise the OIV7 fallback (same rule as every app).
+    checkpoint = default_checkpoint(PROJECT_ROOT)
     expected = signature(checkpoint) if checkpoint else None
     by_key = {f"{r.class_name}/{r.name}": r for r in records}
     caches = {key: cache_for(r, expected) for key, r in by_key.items()}

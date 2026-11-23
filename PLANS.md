@@ -16,10 +16,10 @@ the demo on a full rehearsal and measured results.
 
 | Milestone | Deliverables | Dependencies | Acceptance and verification | Status |
 | --- | --- | --- | --- | --- |
-| Inspect candidate data | Provenance, license, data selection and conversion manifest | Phase 1 | Inspect rights and labels. Validate coordinates, negatives, duplicates and source grouping in a small reviewed sample | Partial. Publisher metadata reviewed. Dataset rights and archives pending |
+| Inspect candidate data | Provenance, license, data selection and conversion manifest | Phase 1 | Inspect rights and labels. Validate coordinates, negatives, duplicates and source grouping in a small reviewed sample | Complete. Roboflow "Weapon Detection-1" v4 acquired (CC BY 4.0 as stated in its files), labels validated, leakage audit and grouped split v2 |
 | Select model and fallback | Vetted local small YOLO checkpoint and class map, including Open Images V7-pretrained option | Phase 1, checkpoint provenance | Runtime inspection approves firearm labels. Unit-test unsupported and missing model cases. Verify permitted positive and negative samples | Complete. Official OIV7 checkpoint verified with smoke clips |
 | Run inference on video | YOLO adapter, frame iterator, confidence filter and annotations | Model selection | Mock inference and test filtering and capture cleanup. Decode and process a short smoke clip on CPU | Complete. MJPG input, MP4 output, and CSV verified |
-| Prepare annotations and evaluate | Versioned, source-grouped export, metric report and optional fine-tuning | Candidate data, inference and available compute | Validate split leakage and reproduce results. Measure latency and score the approved model using the documented protocol | Partial. Fixture checks and CPU benchmark complete. Held-out data pending |
+| Prepare annotations and evaluate | Versioned, source-grouped export, metric report and optional fine-tuning | Candidate data, inference and available compute | Validate split leakage and reproduce results. Measure latency and score the approved model using the documented protocol | Complete for images. YOLOv8n fine-tuned in Colab; TEST image-level and detection metrics measured. Independent video evaluation not done |
 
 ## Phase 3 — Application completion
 
@@ -27,7 +27,7 @@ the demo on a full rehearsal and measured results.
 | --- | --- | --- | --- | --- |
 | Create and store incidents | Temporal alert engine, incident manager, SQLite records, PNG or JPEG evidence | Frame and detection contracts | Test confirmation, reset, consolidation, cooldown, write rollback and evidence cleanup | Complete |
 | Monitor, review and export | Streamlit upload, annotated frames, alerts, history and CSV | Video processor, incidents and storage | App tests cover status and errors. Reopen stored incidents and match CSV fields to visible records | Complete |
-| Verify and demonstrate | End-to-end release checks, expanded documentation, measured results and demo | Working dashboard and local smoke fixtures | Rehearse positive and gray clips, reopen storage, review evidence and export. Run tests and lint | Complete for smoke test. Independent accuracy evaluation remains pending |
+| Verify and demonstrate | End-to-end release checks, expanded documentation, measured results and demo | Working dashboard and local smoke fixtures | Rehearse positive and gray clips, reopen storage, review evidence and export. Run tests and lint | Complete for smoke test. Incident-level accuracy on independent footage not measured |
 | Validate optional webcam | Local camera source | Stable video workflow and usable hardware | Verify permissions, timestamps and safe capture shutdown on demo hardware | Not started |
 
 ## Presentation player
@@ -35,3 +35,13 @@ the demo on a full rehearsal and measured results.
 | Milestone | Deliverables | Dependencies | Acceptance and verification | Status |
 | --- | --- | --- | --- | --- |
 | Automatic visual demonstration | Separate full-window Streamlit player, live CPU annotation, filename-ordered playlist | Verified CPU checkpoint and local clips | Verify Chrome startup, positive and blank status, switching, looping, and refresh | Complete with existing smoke fixtures |
+
+## ML course experiment and submission
+
+| Milestone | Deliverables | Status |
+| --- | --- | --- |
+| Data, features and EDA | `prepare_data`, `features`, `eda`; leakage audit; split v2 (v1 kept and disclosed) | Complete |
+| Models and comparison | Baseline, LR, RF, YOLOv8n pretrained and fine-tuned; `compare.py`; final tables and figures | Complete |
+| Applications on the fine-tuned model | Shared `default_checkpoint()` rule in all apps; video demo on 10 Mendeley videos (demo only) | Complete |
+| Repository for submission | `report_assets/`, `NOTICE.md`, README Results/Reproducing, fresh-copy checks | Complete; push, weights link and code licence pending (student) |
+
