@@ -1,6 +1,8 @@
 """Shared paths, constants and small helper functions for the ML experiment."""
 
+import re
 import zipfile
+from collections import Counter
 from pathlib import Path
 
 import yaml
@@ -21,6 +23,11 @@ FEATURES_PATH = OUTPUT_DIR / "features.npz"
 # Split folder names used by Roboflow exports.
 ORIGINAL_SPLITS = ["train", "valid", "test"]
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+
+# Filename-family rule (video frames such as "KravMagaTraining012"): a prefix is a family only
+# if it has at least FAMILY_MIN_CHARS characters and FAMILY_MIN_IMAGES images share it.
+FAMILY_MIN_CHARS = 4
+FAMILY_MIN_IMAGES = 5
 
 # Which class names count as a firearm. Chosen after printing data.yaml, whose names are
 # ['Card', 'Currency Notes', 'Gun', 'Knife', 'Mobile', 'Pistol']. Edit this set to change
@@ -88,6 +95,31 @@ def source_name(file_name: str) -> str:
     if ".rf." in file_name:
         return file_name.split(".rf.")[0]
     return Path(file_name).stem
+
+
+def family_prefix(file_name: str) -> str:
+    """'KravMagaTraining012_jpg.rf.abc.jpg' -> 'kravmagatraining'.
+
+    Take the text before '.rf.', drop the '_jpg'-style suffix Roboflow adds, then strip
+    trailing digits and the separators _ - . and space, and lower-case it.
+    """
+    stem = source_name(file_name)
+    stem = re.sub(r"_(jpe?g|png|bmp)$", "", stem, flags=re.IGNORECASE)
+    return re.sub(r"[0-9_\-. ]+$", "", stem).lower()
+
+
+def family_keys(
+    file_names: list[str],
+    min_chars: int = FAMILY_MIN_CHARS,
+    min_images: int = FAMILY_MIN_IMAGES,
+) -> list[str]:
+    """One family key per file, or "" when the prefix is too short or too rare.
+
+    The thresholds stop generic names such as "img" or "dsc" from merging unrelated photos.
+    """
+    prefixes = [family_prefix(name) for name in file_names]
+    counts = Counter(prefixes)
+    return [p if len(p) >= min_chars and counts[p] >= min_images else "" for p in prefixes]
 
 
 def relative_path(path: Path) -> str:

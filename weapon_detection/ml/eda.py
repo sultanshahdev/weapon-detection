@@ -10,12 +10,12 @@ import numpy as np
 import pandas as pd
 
 from weapon_detection.ml.common import (
-    FEATURES_PATH,
     FIGURE_DIR,
     FIREARM_CLASS_NAMES,
     MANIFEST_PATH,
     OUTPUT_DIR,
 )
+from weapon_detection.ml.features import load_features
 
 SPLITS = ["train", "val", "test"]
 CLASS_LABELS = {0: "no firearm", 1: "firearm"}
@@ -152,10 +152,8 @@ def main() -> None:
     train_mask = (manifest["new_split"] == "train").to_numpy()
     train = manifest[train_mask].reset_index(drop=True)
 
-    cache = np.load(FEATURES_PATH, allow_pickle=False)
-    if cache["image_path"].tolist() != manifest["image_path"].tolist():
-        raise SystemExit("features.npz does not match manifest.csv; rerun features.py --force")
-    features = pd.DataFrame(cache["handcrafted"], columns=cache["handcrafted_names"].tolist())
+    handcrafted, _, names = load_features(manifest)  # joined by image path
+    features = pd.DataFrame(handcrafted, columns=names)
     train_features = features[train_mask].reset_index(drop=True)
 
     notes = [

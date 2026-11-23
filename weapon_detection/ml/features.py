@@ -79,14 +79,34 @@ def compute_features(paths: list[Path], n_jobs: int = -1) -> tuple[np.ndarray, n
     return handcrafted, hog_matrix
 
 
+def load_features(manifest: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """Return (handcrafted, hog, handcrafted_names) in the SAME row order as the manifest.
+
+    Rows are matched by image path, never by position, so re-splitting the manifest
+    cannot silently attach features to the wrong image.
+    """
+    cache = np.load(FEATURES_PATH, allow_pickle=False)
+    cached_paths = cache["image_path"].tolist()
+    if set(cached_paths) != set(manifest["image_path"]):
+        raise ValueError("features.npz and manifest.csv list different images; rerun --force")
+    row_of_path = {path: row for row, path in enumerate(cached_paths)}
+    rows = [row_of_path[path] for path in manifest["image_path"]]
+    handcrafted = cache["handcrafted"][rows]
+    hog_matrix = cache["hog"][rows]
+    # Final check: the reordered paths must equal the manifest paths one by one.
+    assert [cached_paths[r] for r in rows] == manifest["image_path"].tolist()
+    return handcrafted, hog_matrix, cache["handcrafted_names"].tolist()
+
+
 def main() -> None:
     manifest = pd.read_csv(MANIFEST_PATH)
     image_paths = manifest["image_path"].tolist()
 
-    # Reuse the cache if it was built for exactly the same images in the same order.
+    # Reuse the cache if it was built for exactly the same images (order does not matter,
+    # because load_features() joins by image path).
     if FEATURES_PATH.exists() and "--force" not in sys.argv:
         cached = np.load(FEATURES_PATH, allow_pickle=False)
-        if cached["image_path"].tolist() == image_paths:
+        if set(cached["image_path"].tolist()) == set(image_paths):
             print(f"Cache is up to date: {FEATURES_PATH} (use --force to recompute)")
             return
 

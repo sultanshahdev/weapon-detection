@@ -150,11 +150,21 @@ the git-ignored `outputs/ml/` folder.
 uv run python -m weapon_detection.ml.prepare_data  # extract, label, leakage audit, grouped split
 uv run python -m weapon_detection.ml.features      # pixel features + HOG -> outputs/ml/features.npz
 uv run python -m weapon_detection.ml.eda           # figures + eda_notes.md (train split only)
-uv run pytest tests/test_ml_pipeline.py
+uv run python -m weapon_detection.ml.classical     # baseline, LR, RF: tune on val, test once
+uv run pytest tests/test_ml_pipeline.py tests/test_ml_classical.py
 ```
 
 `firearm_present` is 1 when an image has a `Gun` or `Pistol` box. The firearm set is
 `FIREARM_CLASS_NAMES` in `weapon_detection/ml/common.py`. The split uses
 `StratifiedGroupKFold` (10 folds, seed 42), where fold 0 is test, fold 1 is validation
 and the rest is train. Groups merge Roboflow source names, SHA-256 duplicates and dHash
-near duplicates (Hamming distance of 3 or less).
+near duplicates (Hamming distance of 3 or less). They also merge filename families, which
+are video-frame sequences such as `KravMagaTraining###`. A family needs a prefix of at
+least 4 characters shared by at least 5 images.
+
+`classical.py` fits each scikit-learn pipeline on train only. It picks hyperparameters
+and the decision threshold by validation macro-F1 and writes them to
+`outputs/ml/chosen_settings.json` before it evaluates on test. Results go to
+`outputs/ml/results/`, figures to `outputs/ml/figures/`, `leakage_audit.md` and
+`error_analysis.csv` to `outputs/ml/`, and fitted pipelines to the git-ignored
+`models/classical/` folder.

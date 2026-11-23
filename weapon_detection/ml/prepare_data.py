@@ -21,6 +21,8 @@ from weapon_detection.ml.audit import (
 )
 from weapon_detection.ml.common import (
     EXTRACT_DIR,
+    FAMILY_MIN_CHARS,
+    FAMILY_MIN_IMAGES,
     FIREARM_CLASS_NAMES,
     IMAGE_EXTENSIONS,
     ORIGINAL_SPLITS,
@@ -28,6 +30,7 @@ from weapon_detection.ml.common import (
     RAW_ZIP,
     SEED,
     box_area,
+    family_keys,
     find_data_yaml,
     load_class_names,
     parse_label_line,
@@ -39,6 +42,7 @@ from weapon_detection.ml.common import (
 MIN_NEGATIVES = 500  # course requirement: stop if we cannot build a fair negative class
 MAX_HAMMING = 3  # dHash distance at or below which two images count as near duplicates
 N_FOLDS = 10  # fold 0 = test, fold 1 = val, folds 2..9 = train
+MIN_NEGATIVES_PER_SPLIT = 80  # report a split with fewer negatives than this
 
 
 def print_table(headers: list[str], rows: list[list]) -> None:
@@ -137,6 +141,48 @@ def check_no_group_overlap(groups: list[str], splits: list[str]) -> None:
             raise AssertionError(f"Group {group} appears in two splits")
 
 
+def split_summary(
+    groups: list[str],
+    splits: list[str],
+    labels: list[int],
+    near: list[tuple[int, int]],
+    families: list[str],
+) -> dict:
+    """Numbers that describe how well a split keeps related images apart."""
+    sizes = pd.Series(groups).value_counts()
+    table = pd.DataFrame({"group": groups, "split": splits, "family": families, "y": labels})
+    family_rows = table[table["family"] != ""]
+    split_counts = {}
+    for split in ["train", "val", "test"]:
+        part = table[table["split"] == split]
+        split_counts[split] = {
+            "images": len(part),
+            "positives": int(part["y"].sum()),
+            "negatives": int((part["y"] == 0).sum()),
+            "groups": int(part["group"].nunique()),
+        }
+    return {
+        "merged_groups": int(sizes.size),
+        "groups_with_more_than_one_image": int((sizes > 1).sum()),
+        "images_in_multi_image_groups": int(sizes[sizes > 1].sum()),
+        "largest_group_size": int(sizes.max()),
+        "groups_in_more_than_one_split": int((table.groupby("group")["split"].nunique() > 1).sum()),
+        "near_duplicate_pairs_across_splits": count_crossing(near, splits),
+        "families_spanning_splits": int(
+            (family_rows.groupby("family")["split"].nunique() > 1).sum()
+        ),
+        "split": split_counts,
+    }
+
+
+def warn_large_groups(groups: list[str], families: list[str]) -> None:
+    """Warn if one group holds more than 10% of all images, and name its families."""
+    sizes = pd.Series(groups).value_counts()
+    for group, size in sizes[sizes > 0.10 * len(groups)].items():
+        names = sorted({f for g, f in zip(groups, families) if g == group and f})
+        print(f"WARNING: group {group} holds {size} images (>10%); families: {names}")
+
+
 def prepare(
     dataset_root: Path, output_dir: Path, min_negatives: int = MIN_NEGATIVES, n_jobs: int = -1
 ) -> tuple[pd.DataFrame, dict]:
@@ -181,7 +227,7 @@ def prepare(
     if n_neg < min_negatives:
         raise SystemExit(f"Only {n_neg} negatives (< {min_negatives}); not inventing labels.")
 
-    # --- Leakage audit -------------------------------------------------------------
+    # --- Leakage audit: which images must stay together? -----------------------------
     original_splits = [r["original_split"] for r in records]
     shas = [r["sha256"] for r in records]
     same_source = pairs_within_groups([r["source"] for r in records])
@@ -191,12 +237,32 @@ def prepare(
         for a, b in near_duplicate_pairs([r["dhash"] for r in records], MAX_HAMMING)
         if shas[a] != shas[b]  # identical files are already counted as exact duplicates
     ]
-    groups = group_ids(len(records), same_source + exact + near)
-    group_sizes = pd.Series(groups).value_counts()
+    families = family_keys([r["path"].name for r in records])
+    family_pairs = pairs_within_groups(families)
+
+    family_counts = pd.Series([f for f in families if f]).value_counts()
+    print(
+        f"Filename families used ({len(family_counts)} families, "
+        f"{int(family_counts.sum())} images):"
+    )
+    print_table(["family", "images"], [[f, int(n)] for f, n in family_counts.items()])
+
+    # Grouping WITHOUT families (the old rule) is kept only for the before/after report.
+    old_groups = group_ids(len(records), same_source + exact + near)
+    old_splits = make_split(labels, old_groups)
+    before = split_summary(old_groups, old_splits, labels, near, families)
+
+    # Grouping WITH families: this is the split we use.
+    groups = group_ids(len(records), same_source + exact + near + family_pairs)
+    warn_large_groups(groups, families)
 
     # --- New split, decided before any modelling ------------------------------------
     new_splits = make_split(labels, groups)
+    after = split_summary(groups, new_splits, labels, near, families)
     check_no_group_overlap(groups, new_splits)
+    assert after["groups_in_more_than_one_split"] == 0
+    assert after["near_duplicate_pairs_across_splits"] == 0
+    assert after["families_spanning_splits"] == 0
 
     # --- Manifest -------------------------------------------------------------------
     manifest = pd.DataFrame(
@@ -205,6 +271,7 @@ def prepare(
             "original_split": original_splits,
             "new_split": new_splits,
             "group": groups,
+            "family": families,
             "firearm_present": labels,
             "classes": [";".join(r["classes"]) for r in records],
             "box_areas": [";".join(f"{a:.6f}" for a in r["box_areas"]) for r in records],
@@ -215,17 +282,28 @@ def prepare(
     )
     manifest.to_csv(output_dir / "manifest.csv", index=False)
 
-    negatives = manifest[manifest["firearm_present"] == 0]
-    new_split_counts = {}
-    for split in ["train", "val", "test"]:
-        part = manifest[manifest["new_split"] == split]
-        new_split_counts[split] = {
-            "images": len(part),
-            "positives": int(part["firearm_present"].sum()),
-            "negatives": int((part["firearm_present"] == 0).sum()),
-            "groups": int(part["group"].nunique()),
-        }
+    # Print the 10 largest groups and which families they contain.
+    sizes = manifest.groupby("group").agg(
+        images=("image_path", "size"),
+        positives=("firearm_present", "sum"),
+        families=("family", lambda f: ",".join(sorted(set(f) - {""}))),
+    )
+    print("10 largest groups after merging:")
+    top = sizes.sort_values("images", ascending=False).head(10)
+    print_table(["group", "images", "positives", "families"], [[g, *r] for g, r in top.iterrows()])
 
+    # Check that stratification kept the class balance (A5).
+    low_negative_splits = []
+    print("Positive share per split:")
+    for split, counts in after["split"].items():
+        share = counts["positives"] / counts["images"]
+        print(f"  {split}: {share:.1%} positives, {counts['negatives']} negatives")
+        if counts["negatives"] < MIN_NEGATIVES_PER_SPLIT:
+            low_negative_splits.append(split)
+            print(f"  WARNING: {split} has fewer than {MIN_NEGATIVES_PER_SPLIT} negatives")
+    print()
+
+    negatives = manifest[manifest["firearm_present"] == 0]
     audit = {
         "class_names": class_names,
         "firearm_classes": sorted(n for n in class_names if n.lower() in FIREARM_CLASS_NAMES),
@@ -244,13 +322,13 @@ def prepare(
         "near_duplicate_pairs": len(near),
         "near_duplicate_pairs_crossing_original_split": count_crossing(near, original_splits),
         "near_duplicate_label_conflicts": count_label_conflicts(near, labels),
-        "merged_groups": int(group_sizes.size),
-        "groups_with_more_than_one_image": int((group_sizes > 1).sum()),
-        "images_in_multi_image_groups": int(group_sizes[group_sizes > 1].sum()),
-        "largest_group_size": int(group_sizes.max()),
+        "family_rule": f"prefix >= {FAMILY_MIN_CHARS} chars and >= {FAMILY_MIN_IMAGES} images",
+        "families": {f: int(n) for f, n in family_counts.items()},
+        "family_pairs_crossing_original_split": count_crossing(family_pairs, original_splits),
         "new_split_method": f"StratifiedGroupKFold(n_splits={N_FOLDS}, shuffle=True, seed={SEED})",
-        "new_split": new_split_counts,
-        "groups_in_more_than_one_new_split": 0,  # guaranteed by check_no_group_overlap
+        "splits_with_fewer_than_80_negatives": low_negative_splits,
+        "before_family_fix": before,
+        "after_family_fix": after,
     }
     (output_dir / "audit.json").write_text(json.dumps(audit, indent=2))
 
@@ -259,10 +337,13 @@ def prepare(
         ["check", "value"],
         [[k, v] for k, v in audit.items() if isinstance(v, int) and not isinstance(v, bool)],
     )
-    print("New split:")
+    print("Before / after the filename-family fix:")
+    keys = [k for k in before if k != "split"]
+    print_table(["check", "before", "after"], [[k, before[k], after[k]] for k in keys])
+    print("New split (after family fix):")
     print_table(
         ["split", "images", "positives", "negatives", "groups"],
-        [[s, *c.values()] for s, c in new_split_counts.items()],
+        [[s, *c.values()] for s, c in after["split"].items()],
     )
     return manifest, audit
 

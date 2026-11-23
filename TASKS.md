@@ -53,6 +53,9 @@ change status.
 - [x] Extract the Roboflow v4 ZIP safely, label `firearm_present`, run the leakage audit and
   make the grouped StratifiedGroupKFold split (`outputs/ml/manifest.csv`, `audit.json`).
 - [x] Cache handcrafted and HOG features and EDA figures under `outputs/ml/`.
-- [ ] Train the baseline and three models, then evaluate and analyze errors (Prompt 2).
-- [ ] Optionally group video-frame filename sequences, such as `KravMagaTraining#`, that
-  currently span splits.
+- [x] Group video-frame filename families and re-split. No family spans splits now.
+- [x] Train the baseline, LR and RF on two feature sets, tune on val and evaluate on test once.
+- [ ] Decide on the validation and test negative composition. Each split's negatives
+  come almost entirely from one source group. See `outputs/ml/audit.json`.
+- [ ] Write the error-analysis explanations (student's own work).
+- [ ] Fine-tune YOLOv8n and compare it on the same test images.

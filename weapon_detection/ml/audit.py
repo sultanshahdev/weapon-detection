@@ -44,10 +44,14 @@ def near_duplicate_pairs(hashes: list[int], max_distance: int) -> list[tuple[int
 
 
 def pairs_within_groups(keys: list[str]) -> list[tuple[int, int]]:
-    """All index pairs that share the same key (e.g. same SHA-256 or same source name)."""
+    """All index pairs that share the same key (e.g. same SHA-256 or same source name).
+
+    An empty key "" means "no key" and is never paired.
+    """
     members: dict[str, list[int]] = {}
     for index, key in enumerate(keys):
-        members.setdefault(key, []).append(index)
+        if key:
+            members.setdefault(key, []).append(index)
     pairs = []
     for indices in members.values():
         for a in range(len(indices)):

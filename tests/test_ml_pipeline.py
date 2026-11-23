@@ -8,7 +8,13 @@ import pytest
 from PIL import Image
 
 from weapon_detection.ml.audit import dhash, group_ids
-from weapon_detection.ml.common import parse_label_line, safe_extract, source_name
+from weapon_detection.ml.common import (
+    family_keys,
+    family_prefix,
+    parse_label_line,
+    safe_extract,
+    source_name,
+)
 from weapon_detection.ml.features import HANDCRAFTED_NAMES, compute_features
 from weapon_detection.ml.prepare_data import prepare
 
@@ -46,6 +52,10 @@ def make_dataset(root: Path) -> None:
     # Two Roboflow copies of the same source, placed in different original splits.
     add("train", "shared_jpg.rf.aaaa", seed=100, label="3 0.5 0.5 0.4 0.4\n")
     add("test", "shared_jpg.rf.bbbb", seed=101, label="3 0.5 0.5 0.4 0.4\n")
+    # Six consecutive "video frames" spread over all splits: one filename family.
+    for frame in range(6):
+        name = f"KravMagaTraining{frame:03d}_jpg.rf.{frame:04x}"
+        add(splits[frame % 3], name, seed=300 + frame, label="1 0.5 0.5 0.3 0.3\n")
     # One image with no label file at all.
     add("valid", "nolabel", seed=200, label=None)
 
@@ -69,6 +79,23 @@ def test_source_name_and_union_find() -> None:
     assert groups[0] == groups[1] == groups[2] != groups[3]
 
 
+def test_family_prefix_strips_digits_separators_and_suffix() -> None:
+    assert family_prefix("KravMagaTraining012_jpg.rf.abc.jpg") == "kravmagatraining"
+    assert family_prefix("ABbframe00154_jpg.rf.8dac.jpg") == "abbframe"
+    assert family_prefix("billete_12_JPG.rf.x.jpg") == "billete"
+    assert family_prefix("Some-Video - 07.jpg") == "some-video"
+
+
+def test_family_thresholds() -> None:
+    five_frames = [f"clipname{i}_jpg.rf.{i}.jpg" for i in range(5)]
+    four_frames = [f"fewframes{i}_jpg.rf.{i}.jpg" for i in range(4)]  # only 4 images
+    generic = [f"img{i}_jpg.rf.{i}.jpg" for i in range(10)]  # prefix "img" has 3 chars
+    keys = family_keys(five_frames + four_frames + generic)
+    assert keys[:5] == ["clipname"] * 5  # >= 4 chars and >= 5 images -> family
+    assert keys[5:9] == [""] * 4  # too few images -> no family
+    assert keys[9:] == [""] * 10  # generic short name -> must NOT be merged
+
+
 def test_dhash_is_64_bits_and_stable() -> None:
     gray = np.random.default_rng(0).integers(0, 256, size=(40, 40), dtype=np.uint8)
     assert dhash(gray) == dhash(gray.copy())
@@ -89,7 +116,7 @@ def test_prepare_labels_groups_and_split(tmp_path: Path) -> None:
     make_dataset(root)
     manifest, audit = prepare(root, tmp_path / "out", min_negatives=5, n_jobs=1)
 
-    assert len(manifest) == 33
+    assert len(manifest) == 39
     assert audit["per_original_split"]["valid"]["images_without_label_file"] == 1
     assert sum(c["empty_label_files"] for c in audit["per_original_split"].values()) == 10
     assert audit["firearm_classes"] == ["Gun", "Pistol"]
@@ -102,6 +129,17 @@ def test_prepare_labels_groups_and_split(tmp_path: Path) -> None:
     shared = manifest[manifest["image_path"].str.contains("shared_jpg")]
     assert shared["group"].nunique() == 1
     assert shared["new_split"].nunique() == 1
+
+    # All six frames of the KravMagaTraining family share one group and one split.
+    frames = manifest[manifest["family"] == "kravmagatraining"]
+    assert len(frames) == 6
+    assert frames["group"].nunique() == 1
+    assert frames["new_split"].nunique() == 1
+    # "img00".."img29" give the generic prefix "img" (3 chars): never merged into one group.
+    generic = manifest[manifest["image_path"].str.contains("/img")]
+    assert generic["group"].nunique() == len(generic)
+    assert audit["after_family_fix"]["families_spanning_splits"] == 0
+    assert "before_family_fix" in audit
 
     # No group may appear in more than one new split.
     assert (manifest.groupby("group")["new_split"].nunique() == 1).all()
