@@ -68,3 +68,10 @@ change status.
 - [ ] Write the figure takeaways, report prose and AI-use disclosure (student).
 - [ ] Fine-tune YOLOv8n in Colab (`notebooks/03_yolo_colab.ipynb`), then run `yolo_eval.py`
   on `best.pt`.
+
+## Mendeley video demo (demo source only, not used for any metric)
+
+- [x] Extract `datasets/raw/dataset.zip` safely to `datasets/interim/mendeley_firearm_actions/`
+  (labels for all videos, video subset limited by disk space).
+- [x] Loader, H.264 annotated-video renderer, tests, `video_demo_app.py` and smoke script.
+- [ ] Extract all 398 videos once disk space allows (run the extract script without a limit).

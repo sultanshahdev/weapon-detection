@@ -65,3 +65,39 @@ a directory component named `test` defines the official test partition and cross
 duplicate or source conflicts cause an error. Use the preparation report to verify the
 class balance and actual split counts. Every export contains `data.yaml` and
 `preparation_report.json`. Use `--overwrite` only for an existing generated export.
+
+## Video demo source: Mendeley firearm-related actions (demo only)
+
+- Title: "Action recognition and object detection dataset for firearm-related actions"
+- Authors: Jesus Ruiz-Santaquiteria, Juan D. Munoz, Francisco J. Maigler, Oscar Deniz,
+  Gloria Bueno
+- Mendeley Data, version 2, DOI [10.17632/bbzpxhd22j.2](https://doi.org/10.17632/bbzpxhd22j.2),
+  <https://data.mendeley.com/datasets/bbzpxhd22j/2>
+- Related paper: "Firearm-related action recognition and object detection dataset for
+  video surveillance systems", Data in Brief 52 (2024) 110030,
+  DOI [10.1016/j.dib.2024.110030](https://doi.org/10.1016/j.dib.2024.110030)
+- Licence on the dataset page (Licence field): "CC BY NC 3.0". The page description
+  says: "The dataset is licensed under CC BY NC 3.0. However, we do allow commercial use,
+  but only if prior permission is obtained." (copied from the dataset page on 2026-11-23).
+  Every `label.json` in the download also lists `CC BY NC 3.0`
+  (<https://creativecommons.org/licenses/by-nc/3.0/deed.es>). The journal article itself
+  is published under CC BY 4.0.
+- Use here: non-commercial coursework demonstration only (`video_demo_app.py`). These
+  videos are never used for training, validation, threshold selection or any reported
+  metric, and they are outside every split. No video from this dataset is committed.
+
+Layout found in the download (`datasets/raw/dataset.zip` contains one inner ZIP,
+`Gun_Action_Recognition_Dataset.zip`): `Gun_Action_Recognition_Dataset/{Handgun,
+Machine_Gun,No_Gun}/<video folder>/video.mp4`, 141 + 139 + 118 = 398 videos, 2.28 GB.
+Handgun and Machine_Gun folders have a COCO-style `label.json` (one category per file,
+named after the class). No_Gun folders have no label file. Folder `Handgun/PCH5_C1_P1_V1_HB_1`
+has only `label_antiguo.json`, so the loader treats it as unlabelled. Boxes are
+`[x, y, w, h]` in pixels with a top-left origin. `images[].id` runs 1..N, where N is the
+decoded frame count, so frame ids are 1-based; the loader converts them to 0-based.
+The sampled videos are 640x480 at 25 fps.
+
+Extract with `uv run python scripts/extract_mendeley_videos.py` into
+`datasets/interim/mendeley_firearm_actions/` (git-ignored). The script streams the
+inner ZIP without writing it to disk and checks every member path. On a disk with
+little free space, `--max-per-class N` extracts all labels but only the first N videos
+per class.

@@ -139,6 +139,27 @@ AVI, MOV, MKV or WebM clips with codecs OpenCV can read. The demo displays
 fresh CPU predictions at the rate they finish, without generating video files
 or incident records. See the [playlist setup and measured results](docs/DEMO.md).
 
+## Video demo (Mendeley firearm-action footage)
+
+`video_demo_app.py` plays videos from the public Mendeley dataset "Action recognition and
+object detection dataset for firearm-related actions" (DOI 10.17632/bbzpxhd22j.2, CC BY NC
+3.0, demo use only; see [Dataset](docs/DATASET.md)). Green boxes are the dataset's
+annotations, and red boxes are model predictions.
+
+1. In a browser, open <https://data.mendeley.com/datasets/bbzpxhd22j/2>, choose
+   "Download All" and save the ZIP as `datasets/raw/dataset.zip`.
+2. Extract it once (add `--max-per-class 15` if disk space is short):
+
+```bash
+uv run python scripts/extract_mendeley_videos.py
+uv run streamlit run video_demo_app.py
+uv run python scripts/smoke_video_demo.py   # headless check
+```
+
+Pick a video in the sidebar and press **Prepare video**. Renders are cached in
+`outputs/demo_videos/`. The model overlay uses `models/firearm_yolov8n_best.pt` (or
+`models/yolov8n-oiv7.pt`) on CPU. It needs ffmpeg on PATH or `uv add imageio-ffmpeg`.
+
 ## ML experiment (classical image classification)
 
 A separate course experiment in `weapon_detection/ml/` asks whether an image contains a
