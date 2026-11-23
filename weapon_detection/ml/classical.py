@@ -192,8 +192,13 @@ def max_firearm_area(classes: str, areas: str) -> float:
     return max(values, default=0.0)
 
 
-def error_analysis(manifest: pd.DataFrame, brightness: np.ndarray, run_key: str) -> None:
-    """5 most confident false positives and false negatives on TEST (no explanations)."""
+def error_analysis(
+    manifest: pd.DataFrame, brightness: np.ndarray, run_key: str, out_name: str = "error_analysis"
+) -> None:
+    """5 most confident false positives and false negatives on TEST (no explanations).
+
+    Writes outputs/ml/<out_name>.csv and figures/<out_name>_grid.png.
+    """
     predictions = pd.read_csv(RESULTS_DIR / f"{run_key}_predictions.csv")
     test = predictions[predictions["split"] == "test"].copy()
     info = manifest.set_index("image_path")
@@ -222,7 +227,7 @@ def error_analysis(manifest: pd.DataFrame, brightness: np.ndarray, run_key: str)
             "my_explanation": "",
         }
     )
-    table.to_csv(OUTPUT_DIR / "error_analysis.csv", index=False)
+    table.to_csv(OUTPUT_DIR / f"{out_name}.csv", index=False)
 
     figure, axes = plt.subplots(2, 5, figsize=(15, 6.5))
     for axis in axes.flatten():
@@ -237,14 +242,15 @@ def error_analysis(manifest: pd.DataFrame, brightness: np.ndarray, run_key: str)
         f"Test errors of {run_key}: top row false positives, bottom row false negatives"
     )
     figure.tight_layout()
-    figure.savefig(FIGURE_DIR / "error_analysis_grid.png", dpi=150)
+    figure.savefig(FIGURE_DIR / f"{out_name}_grid.png", dpi=150)
     plt.close(figure)
 
 
 def write_leakage_audit(feature_names: list[str]) -> None:
     """Markdown table of every feature plus the leakage checks, filled from audit.json."""
     audit = json.loads(AUDIT_PATH.read_text())
-    after = audit["after_family_fix"]
+    v2 = audit["split_v2"]["summary"]
+    sources = audit["split_v2"]["negative_sources_v2"]
     lines = [
         "# Leakage audit",
         "",
@@ -266,14 +272,16 @@ def write_leakage_audit(feature_names: list[str]) -> None:
         "",
         "| Check | Result |",
         "| --- | --- |",
-        f"| Groups in more than one split | {after['groups_in_more_than_one_split']} |",
+        "| Split used | v2 (revision made after preliminary v1 test results; see audit.json) |",
+        f"| Groups in more than one split | {v2['groups_in_more_than_one_split']} |",
         f"| Exact duplicate pairs (SHA-256) | {audit['exact_duplicate_pairs']} |",
         f"| Near-duplicate pairs (dHash <= {audit['near_duplicate_max_hamming']}) | "
         f"{audit['near_duplicate_pairs']} total, "
-        f"{after['near_duplicate_pairs_across_splits']} across new splits |",
-        f"| Filename families spanning splits | before fix "
-        f"{audit['before_family_fix']['families_spanning_splits']}, after fix "
-        f"{after['families_spanning_splits']} |",
+        f"{v2['near_duplicate_pairs_across_splits']} across splits |",
+        f"| Filename families spanning splits | {v2['families_spanning_splits']} |",
+        f"| Distinct negative groups (val / test) | "
+        f"{sources['val']['distinct_negative_groups']} / "
+        f"{sources['test']['distinct_negative_groups']} |",
         "| Scaler fitted on train only | yes: StandardScaler is inside the Pipeline, "
         "fit() sees train rows only (unit-tested) |",
         "| Hyperparameters chosen on val only | yes (validation macro-F1) |",
@@ -283,6 +291,55 @@ def write_leakage_audit(feature_names: list[str]) -> None:
         "",
     ]
     (OUTPUT_DIR / "leakage_audit.md").write_text("\n".join(lines))
+
+
+def save_settings(new_settings: dict) -> None:
+    """Add or replace entries in chosen_settings.json, keeping entries of other models."""
+    settings = json.loads(SETTINGS_PATH.read_text()) if SETTINGS_PATH.exists() else {}
+    settings.update(new_settings)
+    SETTINGS_PATH.write_text(json.dumps(settings, indent=2))
+
+
+def save_metric_rows(rows: list[dict]) -> pd.DataFrame:
+    """Add or replace rows in classical_metrics.csv; rows of other models are kept."""
+    new = pd.DataFrame(rows)
+    path = RESULTS_DIR / "classical_metrics.csv"
+    if path.exists():
+        old = pd.read_csv(path)
+        old = old[~old["model"].isin(new["model"])]  # replace rows of the same models
+        new = pd.concat([old, new], ignore_index=True)
+    new.round(4).to_csv(path, index=False)
+    return new
+
+
+def compare_with_split_v1() -> None:
+    """Save test metrics of split v1 next to split v2 (main models and baseline)."""
+    v1_path = OUTPUT_DIR / "split_v1" / "results" / "classical_metrics.csv"
+    if not v1_path.exists():
+        return
+    columns = [
+        "model",
+        "feature_set",
+        "macro_f1",
+        "neg_precision",
+        "neg_recall",
+        "neg_f1",
+        "balanced_accuracy",
+        "accuracy",
+        "roc_auc",
+        "pr_auc",
+    ]
+    tables = []
+    for version, path in [("v1", v1_path), ("v2", RESULTS_DIR / "classical_metrics.csv")]:
+        table = pd.read_csv(path)
+        keep = (table["split"] == "test") & (
+            (table["model"] == "baseline") | (table["main_model"].astype(bool))
+        )
+        tables.append(table.loc[keep, columns].assign(split_version=version))
+    comparison = pd.concat(tables).sort_values(["model", "split_version"])
+    comparison.round(4).to_csv(RESULTS_DIR / "split_v1_vs_v2_test.csv", index=False)
+    print("\nTest metrics, split v1 vs split v2:")
+    print(comparison.round(4).to_string(index=False))
 
 
 def main() -> None:
@@ -297,7 +354,7 @@ def main() -> None:
         "handcrafted_hog": np.hstack([handcrafted, hog_matrix]),
     }
     y = manifest["firearm_present"].to_numpy()
-    split = manifest["new_split"].to_numpy()
+    split = manifest["split"].to_numpy()
     runs = [("baseline", "handcrafted")] + [
         (model, feature_set)
         for model in ["logreg", "random_forest"]
@@ -313,7 +370,7 @@ def main() -> None:
         pipelines[key] = pipeline
         settings[key] = chosen
         joblib.dump(pipeline, MODEL_DIR / f"{key}.joblib")
-    SETTINGS_PATH.write_text(json.dumps(settings, indent=2))
+    save_settings(settings)
     print(f"Settings frozen in {SETTINGS_PATH} - now evaluating on test once.\n")
 
     # ---- Phase 2: evaluate val and test with the frozen settings ---------------------
@@ -365,7 +422,7 @@ def main() -> None:
         pd.concat(prediction_tables).to_csv(RESULTS_DIR / f"{key}_predictions.csv", index=False)
 
     metrics_table = pd.DataFrame(rows)
-    metrics_table.round(4).to_csv(RESULTS_DIR / "classical_metrics.csv", index=False)
+    save_metric_rows(rows)
     columns = ["model", "feature_set", "split", "macro_f1", "neg_recall", "accuracy", "roc_auc"]
     print(metrics_table[columns].round(4).to_string(index=False))
 
@@ -415,6 +472,7 @@ def main() -> None:
     print(f"\nBest model by validation macro-F1: {best_key}")
     error_analysis(manifest, handcrafted[:, names.index("mean_brightness")], best_key)
     write_leakage_audit(names)
+    compare_with_split_v1()
     print(f"Wrote results to {RESULTS_DIR}, figures to {FIGURE_DIR}, models to {MODEL_DIR}")
 
 

@@ -31,7 +31,7 @@ def save(figure: plt.Figure, name: str) -> None:
 
 
 def plot_class_balance(manifest: pd.DataFrame) -> str:
-    counts = pd.crosstab(manifest["new_split"], manifest["firearm_present"]).loc[SPLITS]
+    counts = pd.crosstab(manifest["split"], manifest["firearm_present"]).loc[SPLITS]
     figure, axis = plt.subplots(figsize=(6, 4))
     x = np.arange(len(SPLITS))
     for offset, label in [(-0.2, 0), (0.2, 1)]:
@@ -52,14 +52,13 @@ def plot_class_balance(manifest: pd.DataFrame) -> str:
     return (
         "class_balance_per_split.png: firearm images are "
         + ", ".join(f"{shares[s]}% of {s}" for s in SPLITS)
-        + ", so the data is imbalanced towards positives and a majority-class baseline "
-        f"would already score {shares['test']}% accuracy on test."
+        + f"; always predicting 'firearm' gives {shares['test']}% accuracy on test."
     )
 
 
 def plot_object_classes(manifest: pd.DataFrame) -> str:
     rows = []
-    for split, classes in zip(manifest["new_split"], manifest["classes"].fillna("")):
+    for split, classes in zip(manifest["split"], manifest["classes"].fillna("")):
         for name in classes.split(";") if classes else []:
             rows.append((split, name))
     table = pd.crosstab(
@@ -99,8 +98,7 @@ def plot_firearm_box_area(train: pd.DataFrame) -> str:
     save(figure, "firearm_box_area_hist.png")
     return (
         f"firearm_box_area_hist.png: the median firearm box covers {np.median(areas):.1%} of "
-        f"the image and {np.mean(areas < 0.05):.1%} of {len(areas)} train boxes cover under 5%, "
-        "so many firearms are small and whole-image features may miss them."
+        f"the image and {np.mean(areas < 0.05):.1%} of {len(areas)} train boxes cover under 5%."
     )
 
 
@@ -114,8 +112,8 @@ def plot_image_sizes(train: pd.DataFrame) -> str:
     save(figure, "image_size_distribution.png")
     return (
         f"image_size_distribution.png: {sizes.nunique()} distinct sizes in train; the most "
-        f"common is {top.index[0]} ({top.iloc[0] / len(train):.1%} of train images), so all "
-        "images are resized to 128x128 before feature extraction."
+        f"common is {top.index[0]} ({top.iloc[0] / len(train):.1%} of train images); "
+        "all images are resized to 128x128 before feature extraction."
     )
 
 
@@ -149,7 +147,7 @@ def main() -> None:
     plt.switch_backend("Agg")  # draw to PNG files, no window needed
     FIGURE_DIR.mkdir(parents=True, exist_ok=True)
     manifest = pd.read_csv(MANIFEST_PATH)
-    train_mask = (manifest["new_split"] == "train").to_numpy()
+    train_mask = (manifest["split"] == "train").to_numpy()
     train = manifest[train_mask].reset_index(drop=True)
 
     handcrafted, _, names = load_features(manifest)  # joined by image path
@@ -163,7 +161,8 @@ def main() -> None:
         plot_image_sizes(train),
         plot_feature_distributions(train, train_features),
     ]
-    text = "# EDA notes\n\nAll numbers are computed by `weapon_detection/ml/eda.py`.\n\n"
+    text = "# EDA notes\n\nAll numbers are computed by `weapon_detection/ml/eda.py`. "
+    text += "These are factual notes only; the takeaways are written by the student.\n\n"
     text += "\n".join(f"- {note}" for note in notes) + "\n"
     (OUTPUT_DIR / "eda_notes.md").write_text(text)
     print(text)

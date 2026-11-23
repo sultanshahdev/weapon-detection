@@ -114,7 +114,10 @@ def test_safe_extract_rejects_escaping_paths(tmp_path: Path) -> None:
 def test_prepare_labels_groups_and_split(tmp_path: Path) -> None:
     root = tmp_path / "dataset"
     make_dataset(root)
-    manifest, audit = prepare(root, tmp_path / "out", min_negatives=5, n_jobs=1)
+    small_v2 = {"min_split_negatives": 4, "min_negative_groups": 4}  # tiny dataset
+    manifest, audit = prepare(
+        root, tmp_path / "out", min_negatives=5, n_jobs=1, v2_options=small_v2
+    )
 
     assert len(manifest) == 39
     assert audit["per_original_split"]["valid"]["images_without_label_file"] == 1
@@ -128,13 +131,13 @@ def test_prepare_labels_groups_and_split(tmp_path: Path) -> None:
     # The two copies of "shared" must end up in the same group and the same new split.
     shared = manifest[manifest["image_path"].str.contains("shared_jpg")]
     assert shared["group"].nunique() == 1
-    assert shared["new_split"].nunique() == 1
+    assert shared["split"].nunique() == 1
 
     # All six frames of the KravMagaTraining family share one group and one split.
     frames = manifest[manifest["family"] == "kravmagatraining"]
     assert len(frames) == 6
     assert frames["group"].nunique() == 1
-    assert frames["new_split"].nunique() == 1
+    assert frames["split"].nunique() == 1
     # "img00".."img29" give the generic prefix "img" (3 chars): never merged into one group.
     generic = manifest[manifest["image_path"].str.contains("/img")]
     assert generic["group"].nunique() == len(generic)
@@ -142,8 +145,11 @@ def test_prepare_labels_groups_and_split(tmp_path: Path) -> None:
     assert "before_family_fix" in audit
 
     # No group may appear in more than one new split.
-    assert (manifest.groupby("group")["new_split"].nunique() == 1).all()
-    assert set(manifest["new_split"]) == {"train", "val", "test"}
+    for column in ["split_v1", "split_v2", "split"]:
+        assert (manifest.groupby("group")[column].nunique() == 1).all()
+        assert set(manifest[column]) == {"train", "val", "test"}
+    assert (manifest["split"] == manifest["split_v2"]).all()
+    assert "split_v2" in audit
     assert (tmp_path / "out" / "manifest.csv").exists()
     assert (tmp_path / "out" / "audit.json").exists()
 

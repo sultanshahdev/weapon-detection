@@ -62,13 +62,21 @@ def hog_features(image_bgr: np.ndarray) -> np.ndarray:
     return hog(gray, orientations=9, pixels_per_cell=(16, 16), cells_per_block=(2, 2))
 
 
+def features_from_array(image_bgr: np.ndarray) -> tuple[list[float], np.ndarray]:
+    """Resize a BGR image to 128x128 and return (handcrafted, hog).
+
+    Used for training AND by the prediction GUI, so both see identical features.
+    """
+    image = cv2.resize(image_bgr, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+    return handcrafted_features(image), hog_features(image)
+
+
 def features_for_image(path: Path) -> tuple[list[float], np.ndarray]:
-    """Load one image, resize it, and return (handcrafted, hog)."""
+    """Load one image from disk and return (handcrafted, hog)."""
     image = cv2.imread(str(path), cv2.IMREAD_COLOR)
     if image is None:
         raise ValueError(f"Cannot read image {path}")
-    image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
-    return handcrafted_features(image), hog_features(image)
+    return features_from_array(image)
 
 
 def compute_features(paths: list[Path], n_jobs: int = -1) -> tuple[np.ndarray, np.ndarray]:

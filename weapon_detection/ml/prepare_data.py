@@ -31,12 +31,21 @@ from weapon_detection.ml.common import (
     SEED,
     box_area,
     family_keys,
+    family_prefix,
     find_data_yaml,
     load_class_names,
     parse_label_line,
     relative_path,
     safe_extract,
     source_name,
+)
+from weapon_detection.ml.split_v2 import (
+    MAX_GROUP_SHARE,
+    MIN_NEGATIVE_GROUPS,
+    MIN_SPLIT_NEGATIVES,
+    POSITIVE_FRACTION,
+    make_split_v2,
+    negative_sources,
 )
 
 MIN_NEGATIVES = 500  # course requirement: stop if we cannot build a fair negative class
@@ -183,8 +192,34 @@ def warn_large_groups(groups: list[str], families: list[str]) -> None:
         print(f"WARNING: group {group} holds {size} images (>10%); families: {names}")
 
 
+def print_negative_groups(
+    groups: list[str], labels: list[int], families: list[str], names: list[str], output_dir: Path
+) -> None:
+    """Show the negative groups by size with a readable source name; save the full table."""
+    table = pd.DataFrame({"group": groups, "y": labels, "family": families, "name": names})
+    table["source"] = [f if f else family_prefix(n) for f, n in zip(table["family"], table["name"])]
+    summary = table.groupby("group").agg(
+        images=("y", "size"), positives=("y", "sum"), source=("source", "first")
+    )
+    negative = summary[summary["positives"] == 0].sort_values("images", ascending=False)
+    negative[["images", "source"]].to_csv(output_dir / "negative_groups.csv")
+    print(f"Negative groups: {len(negative)} groups, {int(negative['images'].sum())} images")
+    print_table(
+        ["group", "images", "source"],
+        [[g, r["images"], r["source"]] for g, r in negative.head(20).iterrows()],
+    )
+    sizes = negative["images"].value_counts().sort_index()
+    print(
+        "Negative group size -> number of groups:", {int(k): int(v) for k, v in sizes.items()}, "\n"
+    )
+
+
 def prepare(
-    dataset_root: Path, output_dir: Path, min_negatives: int = MIN_NEGATIVES, n_jobs: int = -1
+    dataset_root: Path,
+    output_dir: Path,
+    min_negatives: int = MIN_NEGATIVES,
+    n_jobs: int = -1,
+    v2_options: dict | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Label, audit and split the dataset; write manifest.csv and audit.json."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -256,7 +291,7 @@ def prepare(
     groups = group_ids(len(records), same_source + exact + near + family_pairs)
     warn_large_groups(groups, families)
 
-    # --- New split, decided before any modelling ------------------------------------
+    # --- Split v1 (StratifiedGroupKFold), kept for the report appendix ----------------
     new_splits = make_split(labels, groups)
     after = split_summary(groups, new_splits, labels, near, families)
     check_no_group_overlap(groups, new_splits)
@@ -264,12 +299,27 @@ def prepare(
     assert after["near_duplicate_pairs_across_splits"] == 0
     assert after["families_spanning_splits"] == 0
 
+    # --- Split v2 (many negative sources in val and test); this is the split we use ----
+    print_negative_groups(groups, labels, families, [r["path"].name for r in records], output_dir)
+    splits_v2 = make_split_v2(groups, labels, **(v2_options or {}))
+    v2 = split_summary(groups, splits_v2, labels, near, families)
+    check_no_group_overlap(groups, splits_v2)
+    assert len(splits_v2) == len(records) and set(splits_v2) <= {"train", "val", "test"}
+    assert v2["groups_in_more_than_one_split"] == 0
+    assert v2["near_duplicate_pairs_across_splits"] == 0
+    assert count_crossing(exact, splits_v2) == 0
+    assert v2["families_spanning_splits"] == 0
+    sources_v1 = negative_sources(groups, labels, new_splits)
+    sources_v2 = negative_sources(groups, labels, splits_v2)
+
     # --- Manifest -------------------------------------------------------------------
     manifest = pd.DataFrame(
         {
             "image_path": [relative_path(r["path"]) for r in records],
             "original_split": original_splits,
-            "new_split": new_splits,
+            "split_v1": new_splits,
+            "split_v2": splits_v2,
+            "split": splits_v2,  # the split used by all downstream code
             "group": groups,
             "family": families,
             "firearm_present": labels,
@@ -294,7 +344,7 @@ def prepare(
 
     # Check that stratification kept the class balance (A5).
     low_negative_splits = []
-    print("Positive share per split:")
+    print("Split v1 positive share per split:")
     for split, counts in after["split"].items():
         share = counts["positives"] / counts["images"]
         print(f"  {split}: {share:.1%} positives, {counts['negatives']} negatives")
@@ -329,6 +379,17 @@ def prepare(
         "splits_with_fewer_than_80_negatives": low_negative_splits,
         "before_family_fix": before,
         "after_family_fix": after,
+        "split_v2": {
+            "note": "Revision made AFTER seeing preliminary split-v1 test results: v1 val "
+            "negatives came from one video and test negatives almost all from one family.",
+            "rule": f"3 largest negative groups -> train; random negative groups (seed {SEED}) "
+            f"until test and val each have >= {MIN_SPLIT_NEGATIVES} negatives from >= "
+            f"{MIN_NEGATIVE_GROUPS} groups, no group > {MAX_GROUP_SHARE:.0%}; positive groups "
+            f"random until val and test each hold >= {POSITIVE_FRACTION:.0%} of positives",
+            "summary": v2,
+            "negative_sources_v1": sources_v1,
+            "negative_sources_v2": sources_v2,
+        },
     }
     (output_dir / "audit.json").write_text(json.dumps(audit, indent=2))
 
@@ -340,11 +401,15 @@ def prepare(
     print("Before / after the filename-family fix:")
     keys = [k for k in before if k != "split"]
     print_table(["check", "before", "after"], [[k, before[k], after[k]] for k in keys])
-    print("New split (after family fix):")
+    print("Split v1 (after family fix):")
     print_table(
         ["split", "images", "positives", "negatives", "groups"],
         [[s, *c.values()] for s, c in after["split"].items()],
     )
+    for name, sources in [("v1", sources_v1), ("v2", sources_v2)]:
+        print(f"Split {name}: negative sources per split")
+        headers = ["split", *next(iter(sources.values())).keys()]
+        print_table(headers, [[s, *c.values()] for s, c in sources.items()])
     return manifest, audit
 
 

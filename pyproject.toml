@@ -43,6 +43,8 @@ torchvision = { index = "pytorch-cpu" }
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.4.0",
+    "nbconvert>=7.17.2",
     "pytest>=9.2.0",
     "ruff>=0.17.6",
 ]

@@ -55,7 +55,16 @@ change status.
 - [x] Cache handcrafted and HOG features and EDA figures under `outputs/ml/`.
 - [x] Group video-frame filename families and re-split. No family spans splits now.
 - [x] Train the baseline, LR and RF on two feature sets, tune on val and evaluate on test once.
-- [ ] Decide on the validation and test negative composition. Each split's negatives
-  come almost entirely from one source group. See `outputs/ml/audit.json`.
+- [x] Use split v2, so val and test negatives come from 87 and 81 groups. Split v1 is
+  archived in `outputs/ml/split_v1/`.
+- [x] Export the one-class YOLO dataset and Colab zip. Evaluate the pretrained OIV7
+  YOLOv8n on the same val and test images.
+- [x] Build the comparison tables, numbered figures, `report_numbers.json` and the strict
+  requirement checklist (`weapon_detection/ml/compare.py`).
+- [x] Build notebooks 01, 02 and 04 with stored outputs. Notebook 03 runs in Colab.
+- [x] Build the audience-input GUI `predict_app.py`. The headless smoke test passes.
+- [x] Write the report evidence pack in `outputs/report/` (facts and placeholders only).
 - [ ] Write the error-analysis explanations (student's own work).
-- [ ] Fine-tune YOLOv8n and compare it on the same test images.
+- [ ] Write the figure takeaways, report prose and AI-use disclosure (student).
+- [ ] Fine-tune YOLOv8n in Colab (`notebooks/03_yolo_colab.ipynb`), then run `yolo_eval.py`
+  on `best.pt`.

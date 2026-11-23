@@ -151,13 +151,36 @@ uv run python -m weapon_detection.ml.prepare_data  # extract, label, leakage aud
 uv run python -m weapon_detection.ml.features      # pixel features + HOG -> outputs/ml/features.npz
 uv run python -m weapon_detection.ml.eda           # figures + eda_notes.md (train split only)
 uv run python -m weapon_detection.ml.classical     # baseline, LR, RF: tune on val, test once
-uv run pytest tests/test_ml_pipeline.py tests/test_ml_classical.py
+uv run python -m weapon_detection.ml.yolo_data     # one-class YOLO export + Colab zip
+uv run python -m weapon_detection.ml.yolo_eval --checkpoint models/yolov8n-oiv7.pt \
+  --name yolov8n_oiv7_pretrained --label "YOLOv8n pretrained (Open Images, not fine-tuned)"
+uv run pytest -q tests/test_ml_*.py
 ```
+
+Fine-tuning runs on a GPU. Upload `outputs/yolo_colab/yolo_firearm.zip` to Google Drive
+and run `notebooks/03_yolo_colab.ipynb` in Colab. To train locally instead, run
+`uv run python -m weapon_detection.ml.yolo_train`, adding `--cpu-preset` on a CPU.
+Put the downloaded `best.pt` at `models/firearm_yolov8n_best.pt` and evaluate it on the
+same images:
+
+```sh
+uv run python -m weapon_detection.ml.yolo_eval --checkpoint models/firearm_yolov8n_best.pt \
+  --name yolov8n_finetuned --label "YOLOv8n fine-tuned (firearm)"
+```
+
+Image-level rows go to `outputs/ml/results/classical_metrics.csv`. Detection metrics
+(mAP50, mAP50-95, precision and recall) go to a separate
+`<name>_detection_metrics.json` file and are never mixed with the image-level metrics.
 
 `firearm_present` is 1 when an image has a `Gun` or `Pistol` box. The firearm set is
 `FIREARM_CLASS_NAMES` in `weapon_detection/ml/common.py`. The split uses
-`StratifiedGroupKFold` (10 folds, seed 42), where fold 0 is test, fold 1 is validation
-and the rest is train. Groups merge Roboflow source names, SHA-256 duplicates and dHash
+split v2 rule in `weapon_detection/ml/split_v2.py`. That rule puts the 3 largest
+all-negative groups in train. It then draws val and test negatives at random (seed 42) from
+at least 8 groups each, with at least 90 images per split and no group above 25%. It
+assigns positive groups at random, so val and test each get about 10% of the positive
+images. Split v2 is a revision made after the preliminary split v1 test results. Split v1
+used `StratifiedGroupKFold`; its artefacts are kept in `outputs/ml/split_v1/` and in the
+manifest column `split_v1`. Groups merge Roboflow source names, SHA-256 duplicates and dHash
 near duplicates (Hamming distance of 3 or less). They also merge filename families, which
 are video-frame sequences such as `KravMagaTraining###`. A family needs a prefix of at
 least 4 characters shared by at least 5 images.
@@ -168,3 +191,43 @@ and the decision threshold by validation macro-F1 and writes them to
 `outputs/ml/results/`, figures to `outputs/ml/figures/`, `leakage_audit.md` and
 `error_analysis.csv` to `outputs/ml/`, and fitted pipelines to the git-ignored
 `models/classical/` folder.
+
+### Comparison, notebooks, report evidence and the audience GUI
+
+```sh
+uv run python -m weapon_detection.ml.compare   # final tables, fig_01..., report_numbers.json
+uv run python scripts/make_notebooks.py        # (re)write notebooks 01, 02, 04
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/01_data_and_eda.ipynb
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/02_classical_models.ipynb
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/04_comparison.ipynb
+uv run streamlit run predict_app.py            # audience-input prediction page (CPU)
+uv run python scripts/smoke_predict_app.py     # headless check -> outputs/ml/gui_smoke_test.json
+```
+
+`compare.py` does not retrain anything. It recomputes every metric from the saved
+prediction CSVs and fails if any value differs from `classical_metrics.csv`. It writes
+these files:
+
+- `outputs/ml/results/final_{test,val}_table.{csv,md}`
+- `detection_metrics.md`, kept separate from the image-level tables
+- numbered figures `outputs/ml/figures/fig_NN_*.png`
+- `figure_index.md`, `requirements_check.md` and `report_numbers.json`
+- the evidence pack in `outputs/report/`, which has outlines, facts and placeholders
+  but no conclusions
+
+`predict_app.py` accepts an uploaded image or a test-split image and lists only the
+models whose files exist. It uses the same feature function as training, and it adds the
+fine-tuned YOLO option automatically once `models/firearm_yolov8n_best.pt` exists and
+`yolo_eval.py` has been run on it.
+
+After downloading the fine-tuned `best.pt` from Colab, run these commands:
+
+```sh
+cp ~/Downloads/best.pt models/firearm_yolov8n_best.pt
+uv run python -m weapon_detection.ml.yolo_eval --checkpoint models/firearm_yolov8n_best.pt \
+  --name yolov8n_finetuned --label "YOLOv8n fine-tuned (firearm)"
+uv run python -m weapon_detection.ml.compare
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/04_comparison.ipynb
+uv run python scripts/smoke_predict_app.py
+uv run python -m weapon_detection.ml.compare   # refresh the checklist after the smoke test
+```
