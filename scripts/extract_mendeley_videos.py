@@ -9,10 +9,13 @@ path traversal before anything is written. Files that already exist are skipped.
 
 --max-per-class N extracts all label.json files but only the first N videos per class
 (sorted by folder name), for machines with little free disk space. The default (0) means all.
+--selection FILE extracts all label.json files plus only the videos listed in FILE
+(outputs/demo_cache/demo_selection.json, written by scripts/select_demo_videos.py).
 This dataset is used for the video demo only, never for training or reported metrics.
 """
 
 import argparse
+import json
 import shutil
 import zipfile
 from pathlib import Path
@@ -31,8 +34,10 @@ def safe_target(dest: Path, name: str) -> Path:
     return target
 
 
-def chosen_members(inner: zipfile.ZipFile, max_per_class: int) -> list[zipfile.ZipInfo]:
-    """All label files, plus every video (or the first N per class by folder name)."""
+def chosen_members(
+    inner: zipfile.ZipFile, max_per_class: int, only: set[str] | None = None
+) -> list[zipfile.ZipInfo]:
+    """All label files, plus every video (or the first N per class, or only `only`)."""
     members = [i for i in inner.infolist() if not i.is_dir()]
     if not any(i.filename.startswith(TOP) for i in members):
         tops = sorted({i.filename.split("/")[0] for i in inner.infolist()})
@@ -46,6 +51,8 @@ def chosen_members(inner: zipfile.ZipFile, max_per_class: int) -> list[zipfile.Z
     for names in by_class.values():
         names.sort()
         keep_videos.update(names[:max_per_class] if max_per_class > 0 else names)
+    if only is not None:  # "<class>/<video>" names from the demo selection
+        keep_videos = {n for n in keep_videos if "/".join(n.split("/")[1:3]) in only}
     chosen = [i for i in members if i.filename.endswith(".json") or i.filename in keep_videos]
     # Sorting by position in the archive means we only ever read the stream forwards,
     # which matters because the outer ZIP is deflated and cannot seek backwards cheaply.
@@ -55,7 +62,12 @@ def chosen_members(inner: zipfile.ZipFile, max_per_class: int) -> list[zipfile.Z
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--max-per-class", type=int, default=0)
+    parser.add_argument("--selection", type=Path, default=None)
     args = parser.parse_args()
+    only = None
+    if args.selection is not None:
+        videos = json.loads(args.selection.read_text())["videos"]
+        only = {f"{v['class_name']}/{v['name']}" for v in videos}
     if not OUTER_ZIP.is_file():
         raise SystemExit(f"Dataset ZIP not found: {OUTER_ZIP}")
     DEST.mkdir(parents=True, exist_ok=True)
@@ -65,7 +77,7 @@ def main() -> None:
             raise SystemExit(f"Expected one inner ZIP, found: {outer.namelist()}")
         with outer.open(inner_names[0]) as stream, zipfile.ZipFile(stream) as inner:
             written = skipped = 0
-            for info in chosen_members(inner, args.max_per_class):
+            for info in chosen_members(inner, args.max_per_class, only):
                 target = safe_target(DEST, info.filename)
                 if target.exists() and target.stat().st_size == info.file_size:
                     skipped += 1

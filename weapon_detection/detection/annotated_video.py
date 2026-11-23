@@ -18,8 +18,8 @@ import numpy as np
 from weapon_detection.data.mendeley_videos import GtBox
 from weapon_detection.detection.model import Detector
 
-# Default per-box confidence for model boxes. 0.25 is the Ultralytics default; it was
-# NOT tuned on the Mendeley videos (they are a demo source, not evaluation data).
+# Default per-box confidence for the red boxes. This is a DISPLAY setting only: 0.25 is the
+# Ultralytics default and it was NOT tuned or chosen on the Mendeley footage.
 DEFAULT_CONFIDENCE = 0.25
 
 GT_COLOR = (0, 200, 0)  # BGR green: dataset annotations
@@ -104,10 +104,13 @@ def render_annotated_video(
     out_path: Path,
     conf: float = DEFAULT_CONFIDENCE,
     progress: Callable[[float], None] | None = None,
+    cached_boxes: dict[int, list] | None = None,
 ) -> dict:
     """Write an H.264 MP4 with overlays to out_path and a JSON sidecar next to it.
 
     boxes_gt=None hides the green overlay; predictor=None hides the red overlay.
+    cached_boxes (precomputed {frame: [[x1, y1, x2, y2, conf], ...]}) replaces the
+    predictor: boxes are only filtered by conf and the model is not called.
     The sidecar (<out_path>.json) stores the model boxes per frame, so the app can show
     statistics and single frames later without running the model again.
     Returns the sidecar contents.
@@ -142,7 +145,12 @@ def render_annotated_video(
             if not ok:
                 break
             gt = None if boxes_gt is None else boxes_gt.get(index, [])
-            found = None if predictor is None else model_boxes_for(predictor, frame, conf)
+            if cached_boxes is not None:
+                found = [tuple(b) for b in cached_boxes.get(index, []) if b[4] >= conf]
+            elif predictor is not None:
+                found = model_boxes_for(predictor, frame, conf)
+            else:
+                found = None
             if found:
                 model_boxes[index] = found
             encoder.stdin.write(draw_overlays(frame, index, gt, found).tobytes())
@@ -163,7 +171,7 @@ def render_annotated_video(
     sidecar = {
         "frames": index,
         "fps": fps,
-        "model_on": predictor is not None,
+        "model_on": predictor is not None or cached_boxes is not None,
         "conf": conf,
         # JSON keys must be strings; frame indices are 0-based.
         "model_boxes": {str(k): [list(b) for b in v] for k, v in model_boxes.items()},

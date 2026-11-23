@@ -94,7 +94,7 @@ named after the class). No_Gun folders have no label file. Folder `Handgun/PCH5_
 has only `label_antiguo.json`, so the loader treats it as unlabelled. Boxes are
 `[x, y, w, h]` in pixels with a top-left origin. `images[].id` runs 1..N, where N is the
 decoded frame count, so frame ids are 1-based; the loader converts them to 0-based.
-The sampled videos are 640x480 at 25 fps.
+Camera C1 videos checked are 640x480 at 25 fps; camera C2 videos checked are 1920x1080 at 30 fps.
 
 Extract with `uv run python scripts/extract_mendeley_videos.py` into
 `datasets/interim/mendeley_firearm_actions/` (git-ignored). The script streams the

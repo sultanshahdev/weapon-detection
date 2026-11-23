@@ -144,21 +144,35 @@ or incident records. See the [playlist setup and measured results](docs/DEMO.md)
 `video_demo_app.py` plays videos from the public Mendeley dataset "Action recognition and
 object detection dataset for firearm-related actions" (DOI 10.17632/bbzpxhd22j.2, CC BY NC
 3.0, demo use only; see [Dataset](docs/DATASET.md)). Green boxes are the dataset's
-annotations, and red boxes are model predictions.
+annotations, and red boxes are model predictions. The footage is outside every split, and
+no threshold or setting was chosen on it.
 
 1. In a browser, open <https://data.mendeley.com/datasets/bbzpxhd22j/2>, choose
    "Download All" and save the ZIP as `datasets/raw/dataset.zip`.
-2. Extract it once (add `--max-per-class 15` if disk space is short):
+2. Choose the 10 demo videos from the dataset's own annotations (4 Handgun and 4
+   Machine_Gun with the most visible, largest GT boxes; 2 No_Gun drawn with seed 42; no
+   model involved). Then extract them. Leave out `--selection` to extract all 398 videos.
+3. Precompute the model boxes once (confidence floor 0.05, imgsz 640, CPU, batch 16).
+   This is resumable, and it also pre-renders the two MP4s per video.
 
 ```bash
-uv run python scripts/extract_mendeley_videos.py
+uv run python scripts/select_demo_videos.py
+uv run python scripts/extract_mendeley_videos.py --selection outputs/demo_cache/demo_selection.json
+uv run python scripts/precompute_demo.py --benchmark   # per-frame vs batch 16, time estimate
+nohup uv run python scripts/precompute_demo.py > outputs/demo_cache/precompute.nohup.out 2>&1 &
+tail -f outputs/demo_cache/precompute.log              # progress and ETA (Ctrl-C stops tail only)
+pkill -INT -f scripts/precompute_demo.py               # stop; rerun the nohup line to resume
 uv run streamlit run video_demo_app.py
-uv run python scripts/smoke_video_demo.py   # headless check
+uv run python scripts/demo_diagnostics.py              # facts -> outputs/demo_cache/diagnostics.md
+uv run python scripts/smoke_video_demo.py              # headless check
 ```
 
-Pick a video in the sidebar and press **Prepare video**. Renders are cached in
-`outputs/demo_videos/`. The model overlay uses `models/firearm_yolov8n_best.pt` (or
-`models/yolov8n-oiv7.pt`) on CPU. It needs ffmpeg on PATH or `uv add imageio-ffmpeg`.
+Selecting a video shows it at once. The confidence slider filters the cached boxes and
+re-renders without calling the model (measured: about 1.5 s for 640x480 videos, about
+11 s for the 1920x1080 camera-C2 videos). A video without a cache offers
+"Run model on this video now". Caches are in `outputs/demo_cache/` and renders in
+`outputs/demo_videos/`; both are git-ignored. Rendering needs ffmpeg on PATH or
+`uv add imageio-ffmpeg`.
 
 ## ML experiment (classical image classification)
 

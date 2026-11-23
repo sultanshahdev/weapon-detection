@@ -84,24 +84,45 @@ class YoloDetector:
                 "Checkpoint has no configured firearm labels. Inspect its class names."
             )
 
-    def predict(self, frame: np.ndarray) -> tuple[Detection, ...]:
+    @staticmethod
+    def _check_frame(frame: np.ndarray) -> None:
         if frame.ndim != 3 or frame.shape[2] != 3 or not frame.size or frame.dtype != np.uint8:
             raise ValueError("Expected a nonempty uint8 BGR image.")
+
+    def _boxes(self, source, batch: int = 1) -> list:
+        """Run YOLO and return the boxes object of each result."""
         try:
             results = self._model.predict(
-                source=frame,
+                source=source,
                 device=self.device,
                 imgsz=self.imgsz,
                 conf=self.confidence,
                 iou=self.iou,
                 classes=list(self.firearm_classes),
+                batch=batch,
                 verbose=False,
             )
-            boxes = results[0].boxes
+            return [result.boxes for result in results]
         except Exception as exc:
             raise RuntimeError(f"YOLO inference failed: {exc}") from exc
 
-        height, width = frame.shape[:2]
+    def predict(self, frame: np.ndarray) -> tuple[Detection, ...]:
+        self._check_frame(frame)
+        return self._to_detections(self._boxes(frame)[0], frame.shape[:2])
+
+    def predict_batch(self, frames: list[np.ndarray]) -> list[tuple[Detection, ...]]:
+        """Same as predict, for several frames in one model call (one result per frame)."""
+        for frame in frames:
+            self._check_frame(frame)
+        boxes = self._boxes(list(frames), batch=len(frames))
+        return [
+            self._to_detections(item, frame.shape[:2])
+            for item, frame in zip(boxes, frames, strict=True)
+        ]
+
+    def _to_detections(self, boxes, shape: tuple[int, int]) -> tuple[Detection, ...]:
+        """Keep configured firearm classes, clip to the image and drop empty boxes."""
+        height, width = shape
         detections = []
         if boxes is None:
             return ()

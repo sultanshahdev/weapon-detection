@@ -74,4 +74,8 @@ change status.
 - [x] Extract `datasets/raw/dataset.zip` safely to `datasets/interim/mendeley_firearm_actions/`
   (labels for all videos, video subset limited by disk space).
 - [x] Loader, H.264 annotated-video renderer, tests, `video_demo_app.py` and smoke script.
-- [ ] Extract all 398 videos once disk space allows (run the extract script without a limit).
+- [x] Choose 10 demo videos from GT annotations only (`select_demo_videos.py`) and extract them.
+- [x] Precompute model boxes once per demo video (`precompute_demo.py`, floor 0.05, imgsz 640)
+  and render from the cache; the app slider filters cached boxes without a model call.
+- [x] Demo footage facts (`demo_diagnostics.py`) and threshold summary (not an evaluation).
+- [ ] Optional: extract and precompute all 398 videos (`--all`).
