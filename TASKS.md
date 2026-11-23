@@ -47,3 +47,12 @@ change status.
 - [x] Add automatic filename-sorted CPU inference playlist in a separate Streamlit entry point.
 - [x] Verify positive and gray frames, looping, browser refresh, and one display in Chrome.
 - [ ] Add approved 10–30-second presentation clips. The existing clips are smoke fixtures.
+
+## ML course experiment
+
+- [x] Extract the Roboflow v4 ZIP safely, label `firearm_present`, run the leakage audit and
+  make the grouped StratifiedGroupKFold split (`outputs/ml/manifest.csv`, `audit.json`).
+- [x] Cache handcrafted and HOG features and EDA figures under `outputs/ml/`.
+- [ ] Train the baseline and three models, then evaluate and analyze errors (Prompt 2).
+- [ ] Optionally group video-frame filename sequences, such as `KravMagaTraining#`, that
+  currently span splits.

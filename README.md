@@ -138,3 +138,23 @@ The separate player automatically loops filename-sorted clips in
 AVI, MOV, MKV or WebM clips with codecs OpenCV can read. The demo displays
 fresh CPU predictions at the rate they finish, without generating video files
 or incident records. See the [playlist setup and measured results](docs/DEMO.md).
+
+## ML experiment (classical image classification)
+
+A separate course experiment in `weapon_detection/ml/` asks whether an image contains a
+firearm. It uses the Roboflow "Weapon Detection-1" v4 YOLOv8 export (CC BY 4.0 per its
+`data.yaml`). Place the ZIP at `datasets/raw/Weapon Detection.zip`. All generated files go to
+the git-ignored `outputs/ml/` folder.
+
+```sh
+uv run python -m weapon_detection.ml.prepare_data  # extract, label, leakage audit, grouped split
+uv run python -m weapon_detection.ml.features      # pixel features + HOG -> outputs/ml/features.npz
+uv run python -m weapon_detection.ml.eda           # figures + eda_notes.md (train split only)
+uv run pytest tests/test_ml_pipeline.py
+```
+
+`firearm_present` is 1 when an image has a `Gun` or `Pistol` box. The firearm set is
+`FIREARM_CLASS_NAMES` in `weapon_detection/ml/common.py`. The split uses
+`StratifiedGroupKFold` (10 folds, seed 42), where fold 0 is test, fold 1 is validation
+and the rest is train. Groups merge Roboflow source names, SHA-256 duplicates and dHash
+near duplicates (Hamming distance of 3 or less).
